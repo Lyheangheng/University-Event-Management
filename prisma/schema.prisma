@@ -1,0 +1,144 @@
+// ==============================================================================
+// University Event Management and Attendance Verification System
+// Prisma Database Schema Definition
+// ==============================================================================
+// TIME HANDLING STRATEGY:
+// All DateTime fields are stored as standard UTC timestamps (PostgreSQL TIMESTAMPTZ).
+// The system runs in Thailand (Asia/Bangkok, UTC+7); timezone formatting and
+// relative event window comparisons are converted in application business logic.
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------------------------------
+
+enum AttendanceSessionType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum AttendanceStatus {
+  INCOMPLETE
+  COMPLETED
+}
+
+// ------------------------------------------------------------------------------
+// MODELS
+// ------------------------------------------------------------------------------
+
+/// Student entity representing authenticated university students
+model Student {
+  id              String   @id @default(uuid())
+  studentId       String   @unique
+  fullName        String
+  year            Int
+  faculty         String
+  major           String
+  
+  // LINE LIFF account linkage information
+  lineUserId      String?  @unique
+  lineDisplayName String?
+  linePictureUrl  String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  attendances     Attendance[]
+
+  @@map("students")
+}
+
+/// Admin entity representing system administrators
+model Admin {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  name         String
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  createdEvents Event[]
+
+  @@map("admins")
+}
+
+/// Event entity representing university events
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+  location    String
+  targetGroup String   // Informational target group e.g. "1st Year Students"
+  imageUrl    String?
+
+  createdById String?
+  createdBy   Admin?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  attendanceSessions AttendanceSession[]
+  attendances        Attendance[]
+
+  @@map("events")
+}
+
+/// AttendanceSession entity representing temporary event-specific QR sessions
+model AttendanceSession {
+  id          String                @id @default(uuid())
+  eventId     String
+  event       Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  sessionType AttendanceSessionType
+  token       String                @unique // Cryptographically secure session token used for dynamic QR validation
+  startTime   DateTime
+  endTime     DateTime              // Expiration timestamp
+
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([eventId, sessionType])
+  @@map("attendance_sessions")
+}
+
+/// Attendance entity representing student event participation records
+model Attendance {
+  id               String           @id @default(uuid())
+  studentId        String
+  student          Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  
+  eventId          String
+  event            Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  checkInTime      DateTime?
+  checkInProofUrl  String?
+
+  checkOutTime     DateTime?
+  checkOutProofUrl String?
+
+  feedback         String?          @db.Text
+  status           AttendanceStatus @default(INCOMPLETE)
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Enforce single attendance record per student per event
+  @@unique([studentId, eventId])
+  @@map("attendances")
+}
