@@ -1,0 +1,93 @@
+==============================================================================
+PHASE 3 REPORT: AUTHENTICATION & ACCOUNT-IDENTITY FOUNDATION SETUP
+==============================================================================
+
+1. Phase Name:
+   Phase 3 - Authentication & Account-Identity Foundation Setup
+
+2. Completion Date/Time:
+   2026-09-19T20:36:00+07:00 (Asia/Bangkok)
+
+3. Authentication Architecture:
+   - Created a dedicated AuthModule under apps/api/src/auth/.
+   - Passport JWT strategy (JwtStrategy) extracting and verifying Bearer tokens.
+   - Password hashing verification using bcryptjs.
+   - Role-based authorization guard (RolesGuard) and @Roles() metadata decorator.
+   - Authenticated user context decorator (@CurrentUser()).
+   - Prepared foundation method findStudentByLineUserId() in AuthService for future
+     LINE/LIFF student authentication.
+
+4. Files/Modules Created:
+   - apps/api/src/auth/dto/admin-login.dto.ts
+   - apps/api/src/auth/decorators/roles.decorator.ts
+   - apps/api/src/auth/decorators/current-user.decorator.ts
+   - apps/api/src/auth/guards/jwt-auth.guard.ts
+   - apps/api/src/auth/guards/roles.guard.ts
+   - apps/api/src/auth/strategies/jwt.strategy.ts
+   - apps/api/src/auth/auth.service.ts
+   - apps/api/src/auth/auth.controller.ts
+   - apps/api/src/auth/auth.module.ts
+
+5. Admin Authentication Implementation:
+   - Endpoint: POST /api/auth/admin/login
+   - Body validation via AdminLoginDto (username, password).
+   - Looks up Admin by username in PostgreSQL database.
+   - Compares password against stored passwordHash using bcrypt.compare().
+   - Generates signed JWT upon success and returns accessToken and admin profile
+     (id, username, name). Excludes passwordHash.
+   - Generic 401 Unauthorized returned on invalid credentials.
+
+6. JWT Configuration:
+   - Integrated with ConfigService via JWT_SECRET and JWT_EXPIRES_IN environment variables.
+   - Added safe template placeholders to .env.example and development values to .env.
+   - JWT Payload structure: { sub: admin.id, username: admin.username, role: 'ADMIN' }.
+
+7. Password Hashing Implementation:
+   - Utilizes bcryptjs with 10 salt rounds.
+   - Passwords and hashes are never logged or returned in API responses.
+
+8. Student / LINE Identity Foundation:
+   - Reused existing Student model from Phase 1 containing lineUserId (@unique).
+   - Implemented findStudentByLineUserId(lineUserId: string) in AuthService.
+   - Exposes no unauthenticated public endpoints.
+
+9. Database Changes:
+   - None required. Reused existing Phase 1 schema.
+
+10. Migration Name:
+    - None required.
+
+11. Authentication Endpoints:
+    - POST /api/auth/admin/login (Public)
+
+12. Protected Endpoints:
+    - GET /api/auth/admin/me (Guarded by JwtAuthGuard & RolesGuard, @Roles('ADMIN'))
+
+13. Test Results:
+    - TypeScript compilation (nest build): PASSED (0 errors).
+    - Unauthenticated request rejection: PASSED (HTTP 401).
+    - Invalid admin credential rejection: PASSED (HTTP 401).
+    - Health endpoint check (/api/health): PASSED (HTTP 200).
+
+14. Development Admin Credentials Format:
+    - Username format: "admin"
+    - Password format: Development-only password hashed in seed (prisma/seed.ts)
+
+15. Manual Configuration Required:
+    - Configure JWT_SECRET and JWT_EXPIRES_IN in local .env file.
+
+16. Dependencies Added:
+    - @nestjs/jwt (^10.2.0)
+    - @nestjs/passport (^10.0.3)
+    - passport (^0.7.0)
+    - passport-jwt (^4.0.1)
+    - bcryptjs (^2.4.3)
+    - @types/bcryptjs (^2.4.6)
+    - @types/passport-jwt (^4.0.1)
+
+17. Problems Encountered:
+    - None.
+
+18. Deviations from Requirements:
+    - None.
+==============================================================================
