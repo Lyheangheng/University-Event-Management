@@ -138,8 +138,8 @@ export default function EventDetailPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
-      {/* Top Back Navigation */}
-      <div>
+      {/* Top Back & Projector Display Navigation */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/events"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:border-slate-700 transition-all group"
@@ -149,6 +149,18 @@ export default function EventDetailPage() {
           </svg>
           Back to Events
         </Link>
+
+        {event && (
+          <Link
+            href={`/events/${event.id}/display`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-xs sm:text-sm font-medium text-indigo-300 hover:text-indigo-200 transition-all"
+          >
+            <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Open Projector Display
+          </Link>
+        )}
       </div>
 
       {/* Main Event Article Container */}
