@@ -11,7 +11,9 @@ import {
   getCountdownTarget,
   ProjectorState,
 } from '../../../../lib/event-display';
+import { fetchActiveSession, ActiveSessionData } from '../../../../lib/attendance-api';
 import { QrPlaceholder } from '../../../../components/display/QrPlaceholder';
+import { QrCodeDisplay } from '../../../../components/display/QrCodeDisplay';
 import { Countdown } from '../../../../components/display/Countdown';
 
 export default function ProjectorDisplayPage() {
@@ -24,6 +26,9 @@ export default function ProjectorDisplayPage() {
 
   // Live 1-second time ticker state
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  // Active attendance session state
+  const [activeSession, setActiveSession] = useState<ActiveSessionData | null>(null);
 
   const loadEvent = useCallback(async () => {
     if (!id) return;
@@ -55,6 +60,33 @@ export default function ProjectorDisplayPage() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Poll for active attendance session every 5 seconds during check-in / check-out windows
+  const pollActiveSession = useCallback(async () => {
+    if (!id) return;
+    try {
+      const session = await fetchActiveSession(id);
+      setActiveSession(session);
+    } catch (err) {
+      console.error('Error polling active session:', err);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!event) return;
+
+    const displayState = getEventDisplayState(event, currentTime);
+    const isAttendanceWindow =
+      displayState === 'CHECK_IN_WINDOW' || displayState === 'CHECK_OUT_WINDOW';
+
+    if (isAttendanceWindow) {
+      pollActiveSession();
+      const interval = setInterval(pollActiveSession, 5000);
+      return () => clearInterval(interval);
+    } else {
+      setActiveSession(null);
+    }
+  }, [event, currentTime, pollActiveSession]);
 
   if (loading) {
     return (
@@ -155,7 +187,14 @@ export default function ProjectorDisplayPage() {
               </div>
               <Countdown targetDate={countdownTarget} currentTime={currentTime} subtitle="Remaining check-in time" />
             </div>
-            <QrPlaceholder sessionType="CHECK_IN" />
+            {activeSession && activeSession.sessionType === 'CHECK_IN' ? (
+              <QrCodeDisplay
+                sessionType="CHECK_IN"
+                attendanceUrl={activeSession.attendanceUrl}
+              />
+            ) : (
+              <QrPlaceholder sessionType="CHECK_IN" />
+            )}
           </div>
         )}
 
@@ -181,7 +220,14 @@ export default function ProjectorDisplayPage() {
               </div>
               <Countdown targetDate={countdownTarget} currentTime={currentTime} subtitle="Remaining check-out time" />
             </div>
-            <QrPlaceholder sessionType="CHECK_OUT" />
+            {activeSession && activeSession.sessionType === 'CHECK_OUT' ? (
+              <QrCodeDisplay
+                sessionType="CHECK_OUT"
+                attendanceUrl={activeSession.attendanceUrl}
+              />
+            ) : (
+              <QrPlaceholder sessionType="CHECK_OUT" />
+            )}
           </div>
         )}
 
