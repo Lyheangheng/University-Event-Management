@@ -170,9 +170,18 @@ export class AttendanceService {
   }
 
   /**
-   * Resolves student identity from authenticated request or dev student ID fallback
+   * Resolves student identity from verified LINE user ID, authenticated request, or dev student ID fallback
    */
-  async resolveStudent(studentIdOrParam?: string): Promise<Student> {
+  async resolveStudent(studentIdOrParam?: string, lineUserId?: string): Promise<Student> {
+    if (lineUserId) {
+      const studentByLine = await this.prisma.student.findUnique({
+        where: { lineUserId },
+      });
+      if (studentByLine) {
+        return studentByLine;
+      }
+    }
+
     if (studentIdOrParam) {
       const student = await this.prisma.student.findFirst({
         where: {

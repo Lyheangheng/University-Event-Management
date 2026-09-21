@@ -9,7 +9,10 @@ import {
   fetchStudentProfile,
   fetchSessionByToken,
   submitAttendance,
+  verifyLineToken,
+  linkStudentAccount,
 } from '../../lib/attendance-api';
+import { initLiff, triggerLiffLogin, LiffState } from '../../lib/liff';
 import { formatEventDate, formatTimeRange } from '../../lib/formatters';
 
 interface StudentAttendanceFormProps {
@@ -26,6 +29,14 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   const [availableStudents, setAvailableStudents] = useState<StudentProfile[]>([]);
   const [selectedDevStudentId, setSelectedDevStudentId] = useState<string>('');
   const [profileLoading, setProfileLoading] = useState<boolean>(true);
+
+  // LINE & LIFF Integration state
+  const [liffInfo, setLiffInfo] = useState<LiffState | null>(null);
+  const [lineLinked, setLineLinked] = useState<boolean>(false);
+  const [lineDisplayName, setLineDisplayName] = useState<string | null>(null);
+  const [linkingLine, setLinkingLine] = useState<boolean>(false);
+  const [lineNotice, setLineNotice] = useState<string | null>(null);
+
 
   // Form input states
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -64,6 +75,47 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   useEffect(() => {
     loadProfileAndSession(selectedDevStudentId);
   }, [selectedDevStudentId, loadProfileAndSession]);
+
+  // Initialize LIFF and verify LINE Token if present
+  useEffect(() => {
+    async function checkLiff() {
+      const state = await initLiff();
+      setLiffInfo(state);
+      if (state.idToken) {
+        try {
+          const verified = await verifyLineToken(state.idToken);
+          setLineLinked(verified.linked);
+          if (verified.displayName) {
+            setLineDisplayName(verified.displayName);
+          }
+          if (verified.linked && verified.student) {
+            setProfile(verified.student);
+          }
+        } catch (err) {
+          console.warn('LINE Token Verification Warning:', err);
+        }
+      }
+    }
+    checkLiff();
+  }, []);
+
+  const handleLinkLineAccount = async () => {
+    if (!liffInfo?.idToken || !profile?.studentId) return;
+    setLinkingLine(true);
+    setLineNotice(null);
+    try {
+      const result = await linkStudentAccount(liffInfo.idToken, profile.studentId);
+      if (result.linked) {
+        setLineLinked(true);
+        setLineNotice('LINE account linked successfully! You will now receive event notifications on LINE.');
+      }
+    } catch (err: any) {
+      setLineNotice(err.message || 'Failed to link LINE account.');
+    } finally {
+      setLinkingLine(false);
+    }
+  };
+
 
   // Handle Photo selection
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -441,9 +493,44 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
                 <span className="text-slate-500 block">Academic Year</span>
                 <span className="text-slate-300 font-medium">Year {profile.year}</span>
               </div>
+
+              {/* LINE Account Link Banner */}
+              {liffInfo?.idToken && (
+                <div className="col-span-1 sm:col-span-2 pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${lineLinked ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
+                    <span className="text-xs text-slate-300">
+                      LINE Account Status:{' '}
+                      {lineLinked ? (
+                        <strong className="text-emerald-400">Linked ({lineDisplayName || 'LINE User'})</strong>
+                      ) : (
+                        <strong className="text-amber-400">Unlinked</strong>
+                      )}
+                    </span>
+                  </div>
+
+                  {!lineLinked && (
+                    <button
+                      type="button"
+                      onClick={handleLinkLineAccount}
+                      disabled={linkingLine}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md disabled:opacity-50"
+                    >
+                      {linkingLine ? 'Linking Account...' : 'Link LINE Account'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ) : null}
+
+          {lineNotice && (
+            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs">
+              {lineNotice}
+            </div>
+          )}
         </div>
+
 
         {/* SECTION 2: Photo Proof Upload */}
         <div className="space-y-3">

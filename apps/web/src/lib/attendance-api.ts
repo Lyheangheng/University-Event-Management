@@ -284,3 +284,56 @@ export async function fetchAdminEventAttendance(eventId: string, token: string):
 
   throw new Error('Invalid response payload from admin attendance endpoint');
 }
+
+export interface LineVerifyResponse {
+  linked: boolean;
+  student: StudentProfile | null;
+  lineUserId: string;
+  displayName?: string;
+  pictureUrl?: string;
+}
+
+/**
+ * Verify LIFF ID token with backend API
+ */
+export async function verifyLineToken(idToken: string): Promise<LineVerifyResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/line/verify-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken }),
+  });
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(json?.message || 'Failed to verify LINE token');
+  }
+
+  if (json && json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Invalid response structure from LINE token verification endpoint');
+}
+
+/**
+ * Link LINE account with Student ID using verified LIFF ID token
+ */
+export async function linkStudentAccount(idToken: string, studentId: string): Promise<{ linked: boolean; student: StudentProfile }> {
+  const res = await fetch(`${API_BASE_URL}/api/line/link-student`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, studentId }),
+  });
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(json?.message || 'Failed to link LINE account');
+  }
+
+  if (json && json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Invalid response structure from LINE student linking endpoint');
+}
+
