@@ -35,6 +35,13 @@ export class EventsController {
     return this.eventsService.findAllEvents();
   }
 
+  @Get(':eventId/attendance')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async getEventAttendance(@Param('eventId') eventId: string) {
+    return this.eventsService.getEventAttendanceForAdmin(eventId);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.eventsService.findEventById(id);

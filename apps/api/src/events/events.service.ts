@@ -160,4 +160,77 @@ export class EventsService {
     this.logger.log(`Event with ID '${id}' deleted successfully`);
     return { id, deleted: true };
   }
+
+  /**
+   * Retrieve attendance records and summary metrics for an event (Admin Only)
+   */
+  async getEventAttendanceForAdmin(eventId: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      throw new NotFoundException(`Event with ID '${eventId}' not found`);
+    }
+
+    const attendances = await this.prisma.attendance.findMany({
+      where: { eventId },
+      include: {
+        student: {
+          select: {
+            id: true,
+            studentId: true,
+            fullName: true,
+            year: true,
+            faculty: true,
+            major: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const totalRecords = attendances.length;
+    const completedCount = attendances.filter((a) => a.status === 'COMPLETED').length;
+    const incompleteCount = attendances.filter((a) => a.status === 'INCOMPLETE').length;
+    const checkedInCount = attendances.filter((a) => a.checkInTime !== null).length;
+    const checkedOutCount = attendances.filter((a) => a.checkOutTime !== null).length;
+
+    return {
+      event: {
+        id: event.id,
+        title: event.title,
+        date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        location: event.location,
+        targetGroup: event.targetGroup,
+      },
+      summary: {
+        totalRecords,
+        completedCount,
+        incompleteCount,
+        checkedInCount,
+        checkedOutCount,
+      },
+      records: attendances.map((a) => ({
+        id: a.id,
+        studentId: a.student.studentId,
+        studentName: a.student.fullName,
+        year: a.student.year,
+        faculty: a.student.faculty,
+        major: a.student.major,
+        checkInTime: a.checkInTime,
+        checkInProofUrl: a.checkInProofUrl,
+        checkOutTime: a.checkOutTime,
+        checkOutProofUrl: a.checkOutProofUrl,
+        feedback: a.feedback,
+        status: a.status,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      })),
+    };
+  }
 }

@@ -192,3 +192,95 @@ export async function submitAttendance(
 
   throw new Error('Unexpected response structure from attendance submission endpoint');
 }
+
+export interface AdminAttendanceRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  year: number;
+  faculty: string;
+  major: string;
+  checkInTime?: string | null;
+  checkInProofUrl?: string | null;
+  checkOutTime?: string | null;
+  checkOutProofUrl?: string | null;
+  feedback?: string | null;
+  status: 'INCOMPLETE' | 'COMPLETED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAttendanceResponse {
+  event: {
+    id: string;
+    title: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    targetGroup: string;
+  };
+  summary: {
+    totalRecords: number;
+    completedCount: number;
+    incompleteCount: number;
+    checkedInCount: number;
+    checkedOutCount: number;
+  };
+  records: AdminAttendanceRecord[];
+}
+
+/**
+ * Admin Login Helper
+ */
+export async function adminLogin(username: string, password: string): Promise<{ accessToken: string; admin: any }> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(json?.message || 'Admin authentication failed');
+  }
+
+  if (json && json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Invalid login response from backend API');
+}
+
+/**
+ * Fetch Admin Attendance list and summary for an event (Admin Protected)
+ */
+export async function fetchAdminEventAttendance(eventId: string, token: string): Promise<AdminAttendanceResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/attendance`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('UNAUTHORIZED');
+  }
+
+  if (res.status === 404) {
+    throw new Error('EVENT_NOT_FOUND');
+  }
+
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => null);
+    throw new Error(errorJson?.message || `Failed to fetch attendance: ${res.statusText}`);
+  }
+
+  const json: ApiResponse<AdminAttendanceResponse> = await res.json();
+  if (json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Invalid response payload from admin attendance endpoint');
+}

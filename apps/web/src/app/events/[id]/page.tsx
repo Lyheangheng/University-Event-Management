@@ -151,15 +151,27 @@ export default function EventDetailPage() {
         </Link>
 
         {event && (
-          <Link
-            href={`/events/${event.id}/display`}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-xs sm:text-sm font-medium text-indigo-300 hover:text-indigo-200 transition-all"
-          >
-            <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            Open Projector Display
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/admin/events/${event.id}/attendance`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-xs sm:text-sm font-medium text-emerald-300 hover:text-emerald-200 transition-all"
+            >
+              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              View Attendance
+            </Link>
+
+            <Link
+              href={`/events/${event.id}/display`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-xs sm:text-sm font-medium text-indigo-300 hover:text-indigo-200 transition-all"
+            >
+              <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Open Projector Display
+            </Link>
+          </div>
         )}
       </div>
 
