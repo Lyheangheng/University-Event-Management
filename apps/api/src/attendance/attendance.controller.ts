@@ -1,6 +1,21 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { AttendanceService } from './attendance.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  Headers,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+  NotFoundException,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { AttendanceService, UploadedProofFile } from './attendance.service';
 import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Controller('attendance')
 export class AttendanceController {
@@ -8,6 +23,7 @@ export class AttendanceController {
     private readonly attendanceService: AttendanceService,
     private readonly configService: ConfigService,
   ) {}
+
 
   /**
    * GET /api/attendance/events/:eventId/session
@@ -54,5 +70,45 @@ export class AttendanceController {
       endsAt: sessionData.endTime,
       attendanceUrl,
     };
+  }
+
+  /**
+   * GET /api/attendance/me
+   * Retrieve authenticated student profile for auto-filling the attendance form.
+   */
+  @Get('me')
+  async getStudentProfile(@Headers('x-dev-student-id') devStudentId?: string) {
+    return this.attendanceService.getStudentProfile(devStudentId);
+  }
+
+  /**
+   * POST /api/attendance/sessions/:token/submit
+   * Submit student attendance with photo proof and optional recommendation/feedback.
+   */
+  @Post('sessions/:token/submit')
+  @UseInterceptors(FileInterceptor('photo'))
+  async submitAttendance(
+    @Param('token') token: string,
+    @UploadedFile() file: UploadedProofFile,
+    @Body('feedback') feedback?: string,
+    @Headers('x-dev-student-id') devStudentId?: string,
+  ) {
+    return this.attendanceService.submitAttendance(token, devStudentId, file, feedback);
+  }
+
+  /**
+   * GET /api/attendance/uploads/proofs/:filename
+   * Safely serve stored proof photos for development viewing.
+   */
+  @Get('uploads/proofs/:filename')
+  getProofImage(@Param('filename') filename: string, @Res() res: Response) {
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(process.cwd(), 'uploads', 'proofs', safeFilename);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Proof image not found');
+    }
+
+    return res.sendFile(filePath);
   }
 }

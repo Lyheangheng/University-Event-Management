@@ -1,4 +1,5 @@
 import { PrismaClient, AttendanceSessionType, AttendanceStatus } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -16,10 +17,11 @@ async function main() {
 
   // 2. Create Development Admin
   // Note: Hashed password representation for development only (password: "AdminPass123!")
+  const adminPasswordHash = bcrypt.hashSync('AdminPass123!', 10);
   const devAdmin = await prisma.admin.create({
     data: {
       username: 'admin',
-      passwordHash: '$2b$10$EpRnTzVlqHNP0.fKb.8Qe.O.z0l4.uW5b8R3lA8qJ0/V01J5KxX1G',
+      passwordHash: adminPasswordHash,
       name: 'System Administrator',
     },
   });

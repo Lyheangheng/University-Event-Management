@@ -38,6 +38,31 @@ export interface SessionValidationData {
   };
 }
 
+export interface StudentProfile {
+  id: string;
+  studentId: string;
+  fullName: string;
+  year: number;
+  faculty: string;
+  major: string;
+}
+
+export interface StudentProfileResult {
+  currentStudent: StudentProfile;
+  availableStudents: StudentProfile[];
+}
+
+export interface AttendanceSubmissionResult {
+  message: string;
+  sessionType: 'CHECK_IN' | 'CHECK_OUT';
+  recordedAt: string;
+  eventTitle: string;
+  studentName: string;
+  studentId: string;
+  attendanceId: string;
+  status: 'INCOMPLETE' | 'COMPLETED';
+}
+
 /**
  * Fetch current active session for an event (used by Projector display)
  */
@@ -85,4 +110,70 @@ export async function fetchSessionByToken(token: string): Promise<SessionValidat
   }
 
   throw new Error('Invalid response structure from backend API');
+}
+
+/**
+ * Fetch authenticated student profile and dev test student list
+ */
+export async function fetchStudentProfile(devStudentId?: string): Promise<StudentProfileResult> {
+  const headers: Record<string, string> = {};
+  if (devStudentId) {
+    headers['x-dev-student-id'] = devStudentId;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/attendance/me`, {
+    headers,
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch student profile');
+  }
+
+  const json: ApiResponse<StudentProfileResult> = await res.json();
+  if (json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Invalid response structure when fetching student profile');
+}
+
+/**
+ * Submit student attendance with photo proof and optional recommendation/feedback
+ */
+export async function submitAttendance(
+  token: string,
+  photo: File,
+  feedback?: string,
+  devStudentId?: string,
+): Promise<AttendanceSubmissionResult> {
+  const formData = new FormData();
+  formData.append('photo', photo);
+  if (feedback && feedback.trim()) {
+    formData.append('feedback', feedback.trim());
+  }
+
+  const headers: Record<string, string> = {};
+  if (devStudentId) {
+    headers['x-dev-student-id'] = devStudentId;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/attendance/sessions/${token}/submit`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const errorMsg = json?.message || `Submission failed with status ${res.status}`;
+    throw new Error(errorMsg);
+  }
+
+  if (json && json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Unexpected response structure from attendance submission endpoint');
 }
