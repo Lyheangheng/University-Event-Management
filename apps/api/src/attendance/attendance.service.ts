@@ -96,9 +96,9 @@ export class AttendanceService {
   }
 
   /**
-   * Retrieves and validates an attendance session by token.
+   * Retrieves and validates an attendance session by token, including existing attendance status for the student.
    */
-  async getSessionByToken(token: string) {
+  async getSessionByToken(token: string, studentIdOrParam?: string) {
     const session = await this.prisma.attendanceSession.findUnique({
       where: { token },
       include: {
@@ -128,6 +128,34 @@ export class AttendanceService {
       throw new BadRequestException('Attendance session has expired or is not yet active');
     }
 
+    let existingAttendance = null;
+    try {
+      const student = await this.resolveStudent(studentIdOrParam);
+      if (student) {
+        const att = await this.prisma.attendance.findUnique({
+          where: {
+            studentId_eventId: {
+              studentId: student.id,
+              eventId: session.eventId,
+            },
+          },
+        });
+        if (att) {
+          existingAttendance = {
+            id: att.id,
+            checkInTime: att.checkInTime,
+            checkInProofUrl: att.checkInProofUrl,
+            checkOutTime: att.checkOutTime,
+            checkOutProofUrl: att.checkOutProofUrl,
+            feedback: att.feedback,
+            status: att.status,
+          };
+        }
+      }
+    } catch {
+      // Ignore if student resolution is not applicable
+    }
+
     return {
       id: session.id,
       eventId: session.eventId,
@@ -137,6 +165,7 @@ export class AttendanceService {
       endTime: session.endTime,
       isValid: true,
       event: session.event,
+      existingAttendance,
     };
   }
 

@@ -7,6 +7,7 @@ import {
   StudentProfile,
   AttendanceSubmissionResult,
   fetchStudentProfile,
+  fetchSessionByToken,
   submitAttendance,
 } from '../../lib/attendance-api';
 import { formatEventDate, formatTimeRange } from '../../lib/formatters';
@@ -15,7 +16,8 @@ interface StudentAttendanceFormProps {
   sessionData: SessionValidationData;
 }
 
-export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProps) {
+export function StudentAttendanceForm({ sessionData: initialSessionData }: StudentAttendanceFormProps) {
+  const [sessionData, setSessionData] = useState<SessionValidationData>(initialSessionData);
   const { sessionType, event, token, startsAt, endsAt } = sessionData;
   const isCheckIn = sessionType === 'CHECK_IN';
 
@@ -36,26 +38,32 @@ export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProp
   const [submissionResult, setSubmissionResult] = useState<AttendanceSubmissionResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Load student profile
-  const loadProfile = useCallback(async (devStudentId?: string) => {
+  // Load student profile & refresh session data for dev student switcher
+  const loadProfileAndSession = useCallback(async (devStudentId?: string) => {
     setProfileLoading(true);
     try {
-      const data = await fetchStudentProfile(devStudentId);
-      setProfile(data.currentStudent);
-      setAvailableStudents(data.availableStudents);
-      if (!selectedDevStudentId && data.currentStudent) {
-        setSelectedDevStudentId(data.currentStudent.id);
+      const [profileRes, refreshedSession] = await Promise.all([
+        fetchStudentProfile(devStudentId),
+        fetchSessionByToken(token, devStudentId).catch(() => null),
+      ]);
+      setProfile(profileRes.currentStudent);
+      setAvailableStudents(profileRes.availableStudents);
+      if (!selectedDevStudentId && profileRes.currentStudent) {
+        setSelectedDevStudentId(profileRes.currentStudent.id);
+      }
+      if (refreshedSession) {
+        setSessionData(refreshedSession);
       }
     } catch (err) {
-      console.error('Failed to load student profile:', err);
+      console.error('Failed to load student profile/session:', err);
     } finally {
       setProfileLoading(false);
     }
-  }, [selectedDevStudentId]);
+  }, [token, selectedDevStudentId]);
 
   useEffect(() => {
-    loadProfile(selectedDevStudentId);
-  }, [selectedDevStudentId, loadProfile]);
+    loadProfileAndSession(selectedDevStudentId);
+  }, [selectedDevStudentId, loadProfileAndSession]);
 
   // Handle Photo selection
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -125,10 +133,15 @@ export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProp
     };
   }, [photoPreviewUrl]);
 
-  // Render SUCCESS State
+  // Existing attendance record shortcuts
+  const existingAtt = sessionData.existingAttendance;
+  const hasCompletedAttendance = existingAtt?.status === 'COMPLETED' || Boolean(existingAtt?.checkOutTime);
+  const hasCheckedIn = Boolean(existingAtt?.checkInTime);
+
+  // Render SUCCESS State from recent submission
   if (submissionResult) {
     return (
-      <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center">
+      <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none">
         <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-400 text-3xl font-black shadow-lg">
           ✓
         </div>
@@ -184,6 +197,128 @@ export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProp
     );
   }
 
+  // State 4: Already COMPLETED Attendance State
+  if (hasCompletedAttendance) {
+    return (
+      <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none">
+        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-400 text-3xl font-black shadow-lg">
+          ✓
+        </div>
+
+        <div className="space-y-2">
+          <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-widest">
+            ATTENDANCE COMPLETED
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-100">
+            Attendance Fully Recorded
+          </h2>
+          <p className="text-slate-400 text-sm">
+            Event: <strong className="text-slate-200">{event.title}</strong>
+          </p>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3 text-xs sm:text-sm">
+          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+            <span>Student Name:</span>
+            <span className="text-slate-200 font-bold">{profile?.fullName || ''}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+            <span>Student ID:</span>
+            <span className="text-slate-200 font-mono font-bold">{profile?.studentId || ''}</span>
+          </div>
+          {existingAtt?.checkInTime && (
+            <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+              <span>Check-In Time:</span>
+              <span className="text-slate-200 font-mono">
+                {new Date(existingAtt.checkInTime).toLocaleString('en-GB')}
+              </span>
+            </div>
+          )}
+          {existingAtt?.checkOutTime && (
+            <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+              <span>Check-Out Time:</span>
+              <span className="text-slate-200 font-mono">
+                {new Date(existingAtt.checkOutTime).toLocaleString('en-GB')}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between text-slate-400">
+            <span>Attendance Status:</span>
+            <span className="font-bold text-emerald-400">COMPLETED</span>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <Link
+            href="/events"
+            className="inline-block w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
+          >
+            Return to All Events
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // State 2: Check-In session when ALREADY checked in (Waiting for Checkout)
+  if (isCheckIn && hasCheckedIn) {
+    return (
+      <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none">
+        <div className="w-20 h-20 mx-auto rounded-full bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center text-amber-400 text-3xl font-black shadow-lg">
+          ⏳
+        </div>
+
+        <div className="space-y-2">
+          <span className="px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-widest">
+            CHECK-IN RECORDED • INCOMPLETE
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-100">
+            Already Checked In
+          </h2>
+          <p className="text-slate-400 text-sm">
+            Event: <strong className="text-slate-200">{event.title}</strong>
+          </p>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3 text-xs sm:text-sm">
+          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+            <span>Student Name:</span>
+            <span className="text-slate-200 font-bold">{profile?.fullName || ''}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+            <span>Check-In Recorded:</span>
+            <span className="text-slate-200 font-mono font-bold">
+              {existingAtt?.checkInTime ? new Date(existingAtt.checkInTime).toLocaleString('en-GB') : ''}
+            </span>
+          </div>
+          <div className="flex justify-between text-slate-400">
+            <span>Status:</span>
+            <span className="font-bold text-amber-400">INCOMPLETE</span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 text-left space-y-1.5">
+          <p className="font-bold text-slate-300">📌 Next Step for Attendance Completion:</p>
+          <p>
+            Please wait until the <strong>Check-Out Window</strong> (the final 15 minutes of the event) to scan the Check-Out QR code on the projector display and complete your attendance.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <Link
+            href="/events"
+            className="inline-block w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
+          >
+            Return to All Events
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // State 3 Warning: Checkout session accessed without prior Check-In
+  const missingCheckInForCheckout = !isCheckIn && !hasCheckedIn;
+
   const formattedStartTime = new Date(startsAt).toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
@@ -233,6 +368,18 @@ export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProp
         <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs sm:text-sm flex items-start gap-3">
           <span className="font-black text-base">⚠️</span>
           <span>{formError}</span>
+        </div>
+      )}
+
+      {/* Missing Check-In Warning Banner for Checkout */}
+      {missingCheckInForCheckout && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs sm:text-sm space-y-1">
+          <p className="font-bold flex items-center gap-2">
+            <span>⚠️</span> Check-In Required Before Check-Out
+          </p>
+          <p className="text-slate-300">
+            You must check in during the check-in window before submitting check-out. Direct check-out without prior check-in is not permitted.
+          </p>
         </div>
       )}
 
@@ -327,19 +474,23 @@ export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProp
                     capture="environment"
                     onChange={handlePhotoChange}
                     className="hidden"
+                    disabled={missingCheckInForCheckout}
                   />
                 </label>
                 <button
                   type="button"
                   onClick={handleRemovePhoto}
                   className="py-2 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-colors"
+                  disabled={missingCheckInForCheckout}
                 >
                   Remove
                 </button>
               </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl bg-slate-950/60 hover:bg-slate-950 cursor-pointer transition-all space-y-2 text-center group">
+            <label className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl bg-slate-950/60 hover:bg-slate-950 cursor-pointer transition-all space-y-2 text-center group ${
+              missingCheckInForCheckout ? 'opacity-50 pointer-events-none' : ''
+            }`}>
               <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xl group-hover:scale-110 transition-transform">
                 📷
               </div>
@@ -353,6 +504,7 @@ export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProp
                 capture="environment"
                 onChange={handlePhotoChange}
                 className="hidden"
+                disabled={missingCheckInForCheckout}
               />
             </label>
           )}
@@ -374,17 +526,18 @@ export function StudentAttendanceForm({ sessionData }: StudentAttendanceFormProp
             maxLength={1000}
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
+            disabled={missingCheckInForCheckout}
             placeholder="Share your thoughts or recommendations regarding this event..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors resize-none"
+            className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors resize-none disabled:opacity-50"
           />
         </div>
 
         {/* SUBMIT BUTTON */}
         <button
           type="submit"
-          disabled={submitting || !photoFile}
+          disabled={submitting || !photoFile || missingCheckInForCheckout}
           className={`w-full py-4 px-6 rounded-2xl font-bold text-sm tracking-wide transition-all shadow-xl flex items-center justify-center gap-2 ${
-            submitting || !photoFile
+            submitting || !photoFile || missingCheckInForCheckout
               ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
               : isCheckIn
               ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'

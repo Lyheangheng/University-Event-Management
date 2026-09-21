@@ -58,8 +58,11 @@ export class AttendanceController {
    * Public endpoint used by student scanner landing page to validate session token.
    */
   @Get('sessions/:token')
-  async getSessionByToken(@Param('token') token: string) {
-    const sessionData = await this.attendanceService.getSessionByToken(token);
+  async getSessionByToken(
+    @Param('token') token: string,
+    @Headers('x-dev-student-id') devStudentId?: string,
+  ) {
+    const sessionData = await this.attendanceService.getSessionByToken(token, devStudentId);
     const frontendBaseUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const attendanceUrl = `${frontendBaseUrl}/attendance/session/${sessionData.token}`;

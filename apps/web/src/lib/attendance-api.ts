@@ -36,6 +36,15 @@ export interface SessionValidationData {
     endTime: string;
     imageUrl?: string | null;
   };
+  existingAttendance?: {
+    id: string;
+    checkInTime?: string | null;
+    checkInProofUrl?: string | null;
+    checkOutTime?: string | null;
+    checkOutProofUrl?: string | null;
+    feedback?: string | null;
+    status: 'INCOMPLETE' | 'COMPLETED';
+  } | null;
 }
 
 export interface StudentProfile {
@@ -86,8 +95,14 @@ export async function fetchActiveSession(eventId: string): Promise<ActiveSession
 /**
  * Fetch and validate attendance session details by token (used by Student Scan entry page)
  */
-export async function fetchSessionByToken(token: string): Promise<SessionValidationData> {
+export async function fetchSessionByToken(token: string, devStudentId?: string): Promise<SessionValidationData> {
+  const headers: Record<string, string> = {};
+  if (devStudentId) {
+    headers['x-dev-student-id'] = devStudentId;
+  }
+
   const res = await fetch(`${API_BASE_URL}/api/attendance/sessions/${token}`, {
+    headers,
     cache: 'no-store',
   });
 
