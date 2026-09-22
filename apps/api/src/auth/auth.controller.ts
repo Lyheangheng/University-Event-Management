@@ -5,16 +5,19 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUserPayload } from './decorators/current-user.decorator';
+import { RateLimiterGuard } from '../common/guards/rate-limiter.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('admin/login')
+  @UseGuards(RateLimiterGuard)
   @HttpCode(HttpStatus.OK)
   async adminLogin(@Body() dto: AdminLoginDto): Promise<AdminLoginResult> {
     return this.authService.adminLogin(dto);
   }
+
 
   @Get('admin/me')
   @UseGuards(JwtAuthGuard, RolesGuard)

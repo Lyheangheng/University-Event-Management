@@ -36,6 +36,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
+      message = 'An unexpected internal server error occurred';
+      errorName = 'Internal Server Error';
+    }
+
+    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+      message = 'An unexpected internal server error occurred';
+      errorName = 'Internal Server Error';
     }
 
     const errorResponse = {
@@ -45,6 +52,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
     };
+
 
     this.logger.warn(
       `${request.method} ${request.url} [Status ${status}] - ${JSON.stringify(message)}`,

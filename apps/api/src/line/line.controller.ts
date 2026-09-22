@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { LineService } from './line.service';
 import { ConfigService } from '@nestjs/config';
+import { LineVerifyTokenDto } from './dto/line-verify-token.dto';
+import { LineLinkStudentDto } from './dto/line-link-student.dto';
 import * as crypto from 'crypto';
 import { Request } from 'express';
 
@@ -29,8 +31,8 @@ export class LineController {
    */
   @Post('verify-token')
   @HttpCode(HttpStatus.OK)
-  async verifyToken(@Body('idToken') idToken: string) {
-    return this.lineService.authenticateOrCheckStatus(idToken);
+  async verifyToken(@Body() dto: LineVerifyTokenDto) {
+    return this.lineService.authenticateOrCheckStatus(dto.idToken);
   }
 
   /**
@@ -39,12 +41,10 @@ export class LineController {
    */
   @Post('link-student')
   @HttpCode(HttpStatus.OK)
-  async linkStudent(
-    @Body('idToken') idToken: string,
-    @Body('studentId') studentId: string,
-  ) {
-    return this.lineService.linkStudentAccount(idToken, studentId);
+  async linkStudent(@Body() dto: LineLinkStudentDto) {
+    return this.lineService.linkStudentAccount(dto.idToken, dto.studentId);
   }
+
 
   /**
    * POST /api/line/webhook

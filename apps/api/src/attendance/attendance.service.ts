@@ -99,28 +99,35 @@ export class AttendanceService {
    * Retrieves and validates an attendance session by token, including existing attendance status for the student.
    */
   async getSessionByToken(token: string, studentIdOrParam?: string) {
-    const session = await this.prisma.attendanceSession.findUnique({
-      where: { token },
-      include: {
-        event: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            location: true,
-            targetGroup: true,
-            date: true,
-            startTime: true,
-            endTime: true,
-            imageUrl: true,
+    let session = null;
+    try {
+      session = await this.prisma.attendanceSession.findUnique({
+        where: { token },
+        include: {
+          event: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              location: true,
+              targetGroup: true,
+              date: true,
+              startTime: true,
+              endTime: true,
+              imageUrl: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (err: any) {
+      this.logger.warn(`Database session lookup failed for token '${token}': ${err.message}`);
+      throw new NotFoundException('Attendance session not found or invalid token');
+    }
 
     if (!session) {
       throw new NotFoundException('Attendance session not found or invalid token');
     }
+
 
     const serverNow = new Date();
 
@@ -173,6 +180,8 @@ export class AttendanceService {
    * Resolves student identity from verified LINE user ID, authenticated request, or dev student ID fallback
    */
   async resolveStudent(studentIdOrParam?: string, lineUserId?: string): Promise<Student> {
+    const isDev = (this.configService.get<string>('nodeEnv') || process.env.NODE_ENV || 'development') === 'development';
+
     if (lineUserId) {
       const studentByLine = await this.prisma.student.findUnique({
         where: { lineUserId },
@@ -182,7 +191,8 @@ export class AttendanceService {
       }
     }
 
-    if (studentIdOrParam) {
+    // Development header / param lookup: strictly permitted ONLY in development mode
+    if (studentIdOrParam && isDev) {
       const student = await this.prisma.student.findFirst({
         where: {
           OR: [{ id: studentIdOrParam }, { studentId: studentIdOrParam }],
@@ -194,14 +204,17 @@ export class AttendanceService {
       }
     }
 
-    // Fallback for development testing
-    const defaultStudent = await this.prisma.student.findFirst();
-    if (!defaultStudent) {
-      throw new UnauthorizedException('No student profiles found in database');
+    // Fallback default student lookup: strictly permitted ONLY in development mode
+    if (isDev) {
+      const defaultStudent = await this.prisma.student.findFirst();
+      if (defaultStudent) {
+        return defaultStudent;
+      }
     }
 
-    return defaultStudent;
+    throw new UnauthorizedException('Student authentication required in production environment');
   }
+
 
   /**
    * Fetches authenticated student profile and available dev test students
