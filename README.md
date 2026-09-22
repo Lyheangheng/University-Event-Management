@@ -90,3 +90,14 @@ university-event-system/
   npm run prisma:validate
   npm run prisma:generate
   ```
+
+## File & Image Storage Handling
+
+- **Storage Abstraction**: The backend uses `StorageService` with a flexible provider interface.
+- **Local Storage Provider**: Set `STORAGE_PROVIDER=local` in `.env`. Uploaded files are stored in `apps/api/uploads/proofs/` (ignored by Git).
+- **Supported File Types**: JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`).
+- **Maximum File Size**: 5 MB (`5 * 1024 * 1024` bytes).
+- **Security Protections**: Server-generated random filenames, client filename stripping, path traversal defense, and exact Content-Type headers.
+- **Testing Storage Handling**: Run `node test_storage_unit.js` to execute unit/isolated storage tests.
+- **Production Reminder**: For multi-server or serverless production deployments, configure object storage (e.g., S3-compatible or Cloudinary) via a custom `StorageProvider` implementation.
+

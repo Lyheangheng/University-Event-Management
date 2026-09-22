@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { EventsModule } from './events/events.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { LineModule } from './line/line.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { LineModule } from './line/line.module';
       load: [configuration],
     }),
     PrismaModule,
+    StorageModule,
     HealthModule,
     AuthModule,
     EventsModule,
@@ -23,4 +25,5 @@ import { LineModule } from './line/line.module';
   ],
 })
 export class AppModule {}
+
 

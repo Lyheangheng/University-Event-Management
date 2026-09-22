@@ -8,22 +8,20 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
-  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AttendanceService, UploadedProofFile } from './attendance.service';
+import { StorageService } from '../storage/storage.service';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
-import * as path from 'path';
-import * as fs from 'fs';
 
 @Controller('attendance')
 export class AttendanceController {
   constructor(
     private readonly attendanceService: AttendanceService,
     private readonly configService: ConfigService,
+    private readonly storageService: StorageService,
   ) {}
-
 
   /**
    * GET /api/attendance/events/:eventId/session
@@ -101,17 +99,13 @@ export class AttendanceController {
 
   /**
    * GET /api/attendance/uploads/proofs/:filename
-   * Safely serve stored proof photos for development viewing.
+   * Safely serve stored proof photos using storage abstraction.
    */
   @Get('uploads/proofs/:filename')
-  getProofImage(@Param('filename') filename: string, @Res() res: Response) {
-    const safeFilename = path.basename(filename);
-    const filePath = path.join(process.cwd(), 'uploads', 'proofs', safeFilename);
-
-    if (!fs.existsSync(filePath)) {
-      throw new NotFoundException('Proof image not found');
-    }
-
+  async getProofImage(@Param('filename') filename: string, @Res() res: Response) {
+    const { filePath, mimetype } = await this.storageService.getFilePath(filename, 'proofs');
+    res.setHeader('Content-Type', mimetype);
     return res.sendFile(filePath);
   }
 }
+

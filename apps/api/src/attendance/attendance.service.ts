@@ -7,10 +7,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { StorageService } from '../storage/storage.service';
 import { AttendanceSessionType, AttendanceStatus, Student } from '@prisma/client';
 import * as crypto from 'crypto';
-import * as path from 'path';
-import * as fs from 'fs';
 
 export interface UploadedProofFile {
   originalname: string;
@@ -23,11 +22,12 @@ export interface UploadedProofFile {
 export class AttendanceService {
   private readonly logger = new Logger(AttendanceService.name);
 
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly storageService: StorageService,
   ) {}
+
 
   /**
    * Generates or retrieves the active attendance session for an event.
@@ -233,35 +233,17 @@ export class AttendanceService {
   }
 
   /**
-   * Saves uploaded proof photo file to local development storage directory safely
+   * Saves uploaded proof photo file using storage abstraction
    */
   private async saveProofFile(file: UploadedProofFile): Promise<string> {
-    if (!file) {
-      throw new BadRequestException('Photo proof file is required');
-    }
-
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('Invalid file type. Only image files (JPEG, PNG, WEBP) are allowed');
-    }
-
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-    if (file.size > MAX_FILE_SIZE) {
-      throw new BadRequestException('File size exceeds the 5MB maximum limit');
-    }
-
-    const uploadDir = path.join(process.cwd(), 'uploads', 'proofs');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const fileExt = path.extname(file.originalname) || '.jpg';
-    const safeFilename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${fileExt}`;
-    const filePath = path.join(uploadDir, safeFilename);
-
-    await fs.promises.writeFile(filePath, file.buffer);
-
-    return `/api/attendance/uploads/proofs/${safeFilename}`;
+    const result = await this.storageService.saveFile(file, {
+      subfolder: 'proofs',
+      allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+      maxSizeBytes: 5 * 1024 * 1024,
+    });
+    return result.url;
   }
+
 
   /**
    * Submits student attendance for an active session
