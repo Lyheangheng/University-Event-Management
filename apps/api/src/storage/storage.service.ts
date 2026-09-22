@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LocalStorageProvider } from './local-storage.provider';
+import { S3StorageProvider } from './s3-storage.provider';
 import { StorageProvider, StorageFile, SaveFileOptions, StoredFileResult } from './storage.interface';
 
 @Injectable()
@@ -11,17 +12,20 @@ export class StorageService {
   constructor(
     private readonly configService: ConfigService,
     private readonly localStorageProvider: LocalStorageProvider,
+    private readonly s3StorageProvider: S3StorageProvider,
   ) {
-    const providerType = this.configService.get<string>('storageProvider') || 'local';
+    const providerType = (
+      this.configService.get<string>('storageProvider') ||
+      this.configService.get<string>('STORAGE_PROVIDER') ||
+      'local'
+    ).toLowerCase();
 
-    if (providerType === 'local') {
-      this.provider = this.localStorageProvider;
-      this.logger.log('StorageService initialized with LocalStorageProvider');
+    if (providerType === 's3' || providerType === 'cloud' || providerType === 'aws') {
+      this.provider = this.s3StorageProvider;
+      this.logger.log('StorageService initialized with S3StorageProvider (Production Object Storage)');
     } else {
-      this.logger.warn(
-        `Storage provider "${providerType}" not implemented yet; falling back to LocalStorageProvider`,
-      );
       this.provider = this.localStorageProvider;
+      this.logger.log('StorageService initialized with LocalStorageProvider (Development Local Filesystem)');
     }
   }
 

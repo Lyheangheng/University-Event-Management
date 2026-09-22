@@ -15,17 +15,19 @@ async function main() {
 
   console.log('Cleared existing data.');
 
-  // 2. Create Development Admin
-  // Note: Hashed password representation for development only (password: "AdminPass123!")
-  const adminPasswordHash = bcrypt.hashSync('AdminPass123!', 10);
+  // 2. Create Admin Account (Supports production environment variable overrides)
+  const adminUsername = process.env.ADMIN_INIT_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_INIT_PASSWORD || 'AdminPass123!';
+  const adminPasswordHash = bcrypt.hashSync(adminPassword, 10);
+
   const devAdmin = await prisma.admin.create({
     data: {
-      username: 'admin',
+      username: adminUsername,
       passwordHash: adminPasswordHash,
       name: 'System Administrator',
     },
   });
-  console.log(`Created admin: ${devAdmin.username}`);
+  console.log(`Created admin user: ${devAdmin.username}`);
 
   // 3. Create Development Students
   const student1 = await prisma.student.create({

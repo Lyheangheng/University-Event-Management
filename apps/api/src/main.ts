@@ -30,8 +30,14 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // CORS Configuration
+  const nodeEnv = (configService.get<string>('nodeEnv') || process.env.NODE_ENV || 'development').toLowerCase();
+  const allowedOrigins =
+    nodeEnv === 'production'
+      ? [frontendUrl]
+      : [frontendUrl, 'http://localhost:3000', 'http://127.0.0.1:3000'];
+
   app.enableCors({
-    origin: [frontendUrl, 'http://localhost:3000'],
+    origin: allowedOrigins,
     credentials: true,
   });
 
