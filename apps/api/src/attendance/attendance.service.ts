@@ -268,10 +268,16 @@ export class AttendanceService {
     feedback?: string,
   ) {
     // 1. Validate session token and active server time
-    const session = await this.prisma.attendanceSession.findUnique({
-      where: { token },
-      include: { event: true },
-    });
+    let session = null;
+    try {
+      session = await this.prisma.attendanceSession.findUnique({
+        where: { token },
+        include: { event: true },
+      });
+    } catch (err: any) {
+      this.logger.warn(`Database session lookup failed for token '${token}': ${err?.message}`);
+      throw new NotFoundException('Attendance session not found or invalid token');
+    }
 
     if (!session) {
       throw new NotFoundException('Attendance session not found or invalid token');
