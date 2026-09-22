@@ -6,6 +6,8 @@ import { EventItem } from '../../types/event';
 import { fetchEvents } from '../../lib/api';
 import { EventCard } from '../../components/EventCard';
 import { SkeletonCard } from '../../components/SkeletonCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -64,38 +66,12 @@ export default function EventsPage() {
           <SkeletonCard />
         </div>
       ) : error ? (
-        /* Error State */
-        <div className="bg-rose-950/20 border border-rose-900/50 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto my-8 space-y-4">
-          <div className="w-12 h-12 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/20">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold text-rose-200">Failed to Load Events</h2>
-          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">{error}</p>
-          <button
-            onClick={loadEvents}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-semibold transition-colors shadow-lg shadow-rose-950/40"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Retry
-          </button>
-        </div>
+        <ErrorState title="Failed to Load Events" message={error} onRetry={loadEvents} />
       ) : events.length === 0 ? (
-        /* Empty State */
-        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-12 text-center max-w-md mx-auto my-8 space-y-3">
-          <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold text-slate-200">No events available</h2>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Check back later for new university events and activities.
-          </p>
-        </div>
+        <EmptyState
+          title="No events available"
+          description="Check back later for new university events and activities."
+        />
       ) : (
         /* Event Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -107,3 +83,4 @@ export default function EventsPage() {
     </div>
   );
 }
+

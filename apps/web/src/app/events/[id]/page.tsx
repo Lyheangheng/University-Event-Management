@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation';
 import { EventItem } from '../../../types/event';
 import { fetchEventById } from '../../../lib/api';
 import { formatEventDate, formatTimeRange, calculateEventStatus } from '../../../lib/formatters';
+import { StatusBadge } from '../../../components/ui/StatusBadge';
+import { ErrorState } from '../../../components/ui/ErrorState';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -79,62 +81,11 @@ export default function EventDetailPage() {
   }
 
   if (error || !event) {
-    return (
-      <div className="w-full max-w-md mx-auto px-4 py-16 text-center space-y-6">
-        <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-900/50 text-rose-400 flex items-center justify-center mx-auto">
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-rose-200">Failed to Load Event</h1>
-          <p className="text-xs sm:text-sm text-slate-400">{error || 'An unexpected error occurred.'}</p>
-        </div>
-        <div className="flex justify-center gap-3">
-          <button
-            onClick={loadEvent}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs sm:text-sm font-semibold transition-colors"
-          >
-            Try Again
-          </button>
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold transition-colors shadow-lg shadow-indigo-950/40"
-          >
-            Back to Events
-          </Link>
-        </div>
-      </div>
-    );
+    return <ErrorState title="Failed to Load Event" message={error || 'An unexpected error occurred.'} onRetry={loadEvent} />;
   }
 
   const status = calculateEventStatus(event.startTime, event.endTime);
 
-  const renderStatusBadge = () => {
-    switch (status) {
-      case 'ONGOING':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            ONGOING
-          </span>
-        );
-      case 'UPCOMING':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            <span className="w-2 h-2 rounded-full bg-indigo-400" />
-            UPCOMING
-          </span>
-        );
-      case 'ENDED':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
-            <span className="w-2 h-2 rounded-full bg-slate-500" />
-            ENDED
-          </span>
-        );
-    }
-  };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
@@ -202,7 +153,7 @@ export default function EventDetailPage() {
           {/* Header Info */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              {renderStatusBadge()}
+              <StatusBadge variant={status as any} />
               <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800/80 text-slate-300 border border-slate-700/60">
                 Target: {event.targetGroup || 'All Students'}
               </span>
