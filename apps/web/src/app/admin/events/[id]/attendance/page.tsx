@@ -2,12 +2,11 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   AdminAttendanceResponse,
   AdminAttendanceRecord,
   fetchAdminEventAttendance,
-  adminLogin,
 } from '../../../../../lib/attendance-api';
 import { formatEventDate, formatTimeRange } from '../../../../../lib/formatters';
 
@@ -15,6 +14,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function AdminEventAttendancePage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string;
 
   // Data states
@@ -24,11 +24,6 @@ export default function AdminEventAttendancePage() {
 
   // Auth token state
   const [token, setToken] = useState<string | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  const [loginUsername, setLoginUsername] = useState<string>('admin');
-  const [loginPassword, setLoginPassword] = useState<string>('AdminPass123!');
-  const [authSubmitting, setAuthSubmitting] = useState<boolean>(false);
-  const [authError, setAuthError] = useState<string | null>(null);
 
   // Filter & search states
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'COMPLETED' | 'INCOMPLETE'>('ALL');
@@ -37,16 +32,15 @@ export default function AdminEventAttendancePage() {
   // Selected record for inspection modal
   const [selectedRecord, setSelectedRecord] = useState<AdminAttendanceRecord | null>(null);
 
-  // Read stored token on mount
+  // Read stored token on mount & redirect if unauthenticated
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_access_token');
-    if (storedToken) {
-      setToken(storedToken);
+    if (!storedToken) {
+      router.replace(`/admin/login?redirect=/admin/events/${id}/attendance`);
     } else {
-      setShowAuthModal(true);
-      setLoading(false);
+      setToken(storedToken);
     }
-  }, []);
+  }, [router, id]);
 
   // Fetch Attendance Data
   const loadAttendance = useCallback(async (authToken: string) => {
@@ -56,11 +50,10 @@ export default function AdminEventAttendancePage() {
     try {
       const resData = await fetchAdminEventAttendance(id, authToken);
       setData(resData);
-      setShowAuthModal(false);
     } catch (err: any) {
       if (err.message === 'UNAUTHORIZED') {
-        setShowAuthModal(true);
-        setError('UNAUTHORIZED');
+        localStorage.removeItem('admin_access_token');
+        router.replace(`/admin/login?redirect=/admin/events/${id}/attendance`);
       } else if (err.message === 'EVENT_NOT_FOUND') {
         setError('EVENT_NOT_FOUND');
       } else {
@@ -69,7 +62,7 @@ export default function AdminEventAttendancePage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, router]);
 
   useEffect(() => {
     if (token) {
@@ -77,28 +70,11 @@ export default function AdminEventAttendancePage() {
     }
   }, [token, loadAttendance]);
 
-  // Admin login submission handler
-  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthSubmitting(true);
-    try {
-      const res = await adminLogin(loginUsername, loginPassword);
-      localStorage.setItem('admin_access_token', res.accessToken);
-      setToken(res.accessToken);
-      await loadAttendance(res.accessToken);
-    } catch (err: any) {
-      setAuthError(err.message || 'Invalid credentials');
-    } finally {
-      setAuthSubmitting(false);
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('admin_access_token');
     setToken(null);
     setData(null);
-    setShowAuthModal(true);
+    router.push('/admin/login');
   };
 
   // Filtered records logic
@@ -123,80 +99,8 @@ export default function AdminEventAttendancePage() {
     return `${API_BASE_URL}${path}`;
   };
 
-  // Auth Modal View
-  if (showAuthModal) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans select-none">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 mx-auto rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-2xl font-bold">
-              🔐
-            </div>
-            <h1 className="text-2xl font-black text-slate-100">Admin Authentication Required</h1>
-            <p className="text-slate-400 text-xs sm:text-sm">
-              Please sign in with administrator credentials to access student attendance records.
-            </p>
-          </div>
-
-          {authError && (
-            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs text-center font-medium">
-              ⚠️ {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleAdminLoginSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                Username
-              </label>
-              <input
-                type="text"
-                required
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="Admin username"
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Admin password"
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs text-slate-200 outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={authSubmitting}
-              className="w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm tracking-wide transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
-            >
-              {authSubmitting ? 'Authenticating...' : 'Sign In as Admin'}
-            </button>
-          </form>
-
-          <div className="text-center pt-2">
-            <Link
-              href={`/events/${id}`}
-              className="text-xs text-slate-400 hover:text-slate-200 underline underline-offset-4"
-            >
-              Return to Event Details
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Loading Skeleton
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="w-full max-w-6xl mx-auto px-4 py-8 sm:py-12 space-y-8 animate-pulse select-none">
         <div className="h-8 bg-slate-800/60 rounded-xl w-1/3" />
@@ -224,10 +128,10 @@ export default function AdminEventAttendancePage() {
           </p>
         </div>
         <Link
-          href="/events"
+          href="/admin"
           className="inline-block py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
         >
-          Return to Events
+          Return to Admin Dashboard
         </Link>
       </div>
     );
@@ -244,12 +148,20 @@ export default function AdminEventAttendancePage() {
           <h1 className="text-2xl font-black text-slate-100">Failed to Load Attendance</h1>
           <p className="text-slate-400 text-sm">{error || 'An unexpected error occurred.'}</p>
         </div>
-        <button
-          onClick={() => token && loadAttendance(token)}
-          className="py-3 px-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-bold text-sm transition-all"
-        >
-          Retry
-        </button>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => token && loadAttendance(token)}
+            className="py-3 px-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-bold text-sm transition-all"
+          >
+            Retry
+          </button>
+          <Link
+            href="/admin"
+            className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
+          >
+            Back to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }
@@ -277,10 +189,10 @@ export default function AdminEventAttendancePage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href={`/events/${event.id}`}
+            href="/admin"
             className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all"
           >
-            ← Event Details
+            ← Admin Dashboard
           </Link>
           <Link
             href={`/events/${event.id}/display`}

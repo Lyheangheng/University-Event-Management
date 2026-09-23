@@ -86,10 +86,9 @@ export default function EventDetailPage() {
 
   const status = calculateEventStatus(event.startTime, event.endTime);
 
-
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
-      {/* Top Back & Projector Display Navigation */}
+      {/* Top Back & Actions Navigation */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/events"
@@ -104,16 +103,6 @@ export default function EventDetailPage() {
         {event && (
           <div className="flex flex-wrap items-center gap-2">
             <Link
-              href={`/admin/events/${event.id}/attendance`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-xs sm:text-sm font-medium text-emerald-300 hover:text-emerald-200 transition-all"
-            >
-              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              View Attendance
-            </Link>
-
-            <Link
               href={`/events/${event.id}/display`}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-xs sm:text-sm font-medium text-indigo-300 hover:text-indigo-200 transition-all"
             >
@@ -121,6 +110,16 @@ export default function EventDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               Open Projector Display
+            </Link>
+
+            <Link
+              href={`/admin/events/${event.id}/attendance`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-xs sm:text-sm font-medium text-slate-400 hover:text-slate-200 transition-all"
+            >
+              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Admin Attendance
             </Link>
           </div>
         )}
@@ -162,6 +161,21 @@ export default function EventDetailPage() {
             <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-100 tracking-tight leading-tight">
               {event.title}
             </h1>
+          </div>
+
+          {/* Student Attendance Information Box */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs sm:text-sm text-slate-300 flex items-start gap-3 sm:gap-4">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 text-lg">
+              📱
+            </div>
+            <div className="space-y-1">
+              <span className="font-bold text-slate-100 block text-xs sm:text-sm">
+                Student Attendance Instructions
+              </span>
+              <p className="text-slate-400 leading-relaxed text-xs">
+                Attendance recording requires scanning the dynamic QR code displayed live on the venue&apos;s <strong className="text-slate-200">Projector Display</strong> screen during check-in or check-out windows.
+              </p>
+            </div>
           </div>
 
           {/* Quick Details Metadata Grid */}

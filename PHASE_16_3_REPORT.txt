@@ -1,0 +1,122 @@
+===============================================================================
+PHASE 16.3 — ADMIN UI & AUTHENTICATION SEPARATION REPORT
+===============================================================================
+Date: 2026-09-24
+Project: University Event Management and Attendance Verification System
+Status: COMPLETE & VERIFIED
+
+-------------------------------------------------------------------------------
+1. PHASE & OBJECTIVE
+-------------------------------------------------------------------------------
+Phase: Phase 16.3 — Admin UI, Authentication & Navigation Separation
+Objective:
+  Separate public student attendance submission from administrator management tools.
+  Implement a dedicated admin login page (`/admin/login`), an admin dashboard (`/admin`),
+  protect all admin routes with token redirection, and eliminate user confusion on public
+  event pages regarding student vs. administrator attendance.
+
+-------------------------------------------------------------------------------
+2. PROBLEM FOUND
+-------------------------------------------------------------------------------
+1. Unauthenticated users accessing `/admin/login` received a Next.js 404 error because
+   no page component existed under `apps/web/src/app/admin/login/page.tsx`.
+2. Admin authentication was previously handled via an inline modal overlay embedded inside
+   the event attendance page (`/admin/events/[id]/attendance`), leading to confusing UX.
+3. The public Event Detail page (`/events/[id]`) displayed an "Attendance" button pointing
+   to the admin attendance management console (`/admin/events/[id]/attendance`), which misled
+   students into attempting student attendance check-ins through admin tools.
+
+-------------------------------------------------------------------------------
+3. FILES CHANGED
+-------------------------------------------------------------------------------
+[NEW] apps/web/src/app/admin/login/page.tsx
+  - Dedicated Admin Login page matching project dark UI design.
+  - Submits to `POST /api/auth/admin/login` via `adminLogin()`.
+  - Stores `admin_access_token` in `localStorage` upon successful authentication.
+  - Redirects to `/admin` (or requested redirect URL).
+  - Handles authentication errors cleanly without exposing credentials.
+
+[NEW] apps/web/src/app/admin/page.tsx
+  - Dedicated Admin Management Dashboard/Console.
+  - Verifies presence of `admin_access_token` in `localStorage`; redirects to `/admin/login` if missing.
+  - Displays list of active university events with status badges.
+  - Provides quick action navigation to event attendance management (`/admin/events/[id]/attendance`),
+    projector display screen (`/events/[id]/display`), and public detail view.
+  - Includes a Sign Out button that removes `admin_access_token` and returns to `/admin/login`.
+
+[MODIFY] apps/web/src/app/admin/events/[id]/attendance/page.tsx
+  - Protected route using `admin_access_token`.
+  - Redirects unauthenticated users immediately to `/admin/login?redirect=/admin/events/[id]/attendance`.
+  - Redirects 401/403 `UNAUTHORIZED` responses to `/admin/login`.
+  - Removed inline login modal overlay in favor of centralized `/admin/login`.
+  - Preserved all attendance record table filters, summary metrics, search, and proof inspection modals.
+  - Added "← Admin Dashboard" navigation and "Sign Out" actions in header.
+
+[MODIFY] apps/web/src/app/events/[id]/page.tsx
+  - Clarified navigation: Replaced misleading "View Attendance" button with explicitly labeled
+    "Admin Attendance" (with lock icon).
+  - Added a prominent "Student Attendance Instructions" banner informing students that attendance
+    submission requires scanning the dynamic QR code displayed on the venue's Projector Display.
+
+-------------------------------------------------------------------------------
+4. ADMIN ROUTES CREATED & CHANGED
+-------------------------------------------------------------------------------
+- `/admin/login`                  [NEW]   Dedicated Admin Login form
+- `/admin`                        [NEW]   Admin Event Management Dashboard
+- `/admin/events/[id]/attendance` [UPDATE] Protected admin attendance records portal
+
+-------------------------------------------------------------------------------
+5. AUTHENTICATION FLOW
+-------------------------------------------------------------------------------
+1. User visits `/admin` or `/admin/events/[id]/attendance`.
+2. Frontend checks `localStorage.getItem('admin_access_token')`.
+3. If token is missing, user is redirected to `/admin/login`.
+4. At `/admin/login`, user submits admin credentials (`username`, `password`).
+5. Frontend calls `POST /api/auth/admin/login`.
+6. API returns JWT token (`accessToken`).
+7. Token saved to `localStorage.setItem('admin_access_token', token)`.
+8. User redirected back to `/admin` or target admin page.
+9. Clicking "Sign Out" removes `admin_access_token` and redirects to `/admin/login`.
+
+-------------------------------------------------------------------------------
+6. STUDENT ATTENDANCE & PROJECT DISPLAY PRESERVATION
+-------------------------------------------------------------------------------
+- `/attendance/session/[sessionToken]`: 100% UNTOUCHED and functional for QR session scanning.
+- `/events/[id]/display`: 100% UNTOUCHED and functional for live 16:9 venue projector display.
+- Public Event Detail page now explicitly guides students to use QR scanner on Projector Display.
+
+-------------------------------------------------------------------------------
+7. BUILD & VERIFICATION RESULTS
+-------------------------------------------------------------------------------
+Command: `npm run build --workspace=apps/web`
+Result: SUCCESS (Exit Code 0)
+
+Build Output Routes:
+  Route (app)                              Size     First Load JS
+  ┌ ○ /                                    175 B          96.2 kB
+  ├ ○ /_not-found                          873 B          88.2 kB
+  ├ ○ /admin                               3.52 kB        99.6 kB
+  ├ ƒ /admin/events/[id]/attendance        5.84 kB         102 kB
+  ├ ○ /admin/login                         3.36 kB        99.4 kB
+  ├ ƒ /attendance/session/[token]          7.21 kB         103 kB
+  ├ ○ /events                              4.3 kB          100 kB
+  ├ ƒ /events/[id]                         4.61 kB         101 kB
+  └ ƒ /events/[id]/display                 11.8 kB         108 kB
+  + First Load JS shared by all            87.3 kB
+
+-------------------------------------------------------------------------------
+8. MANUAL CONFIGURATION REQUIRED
+-------------------------------------------------------------------------------
+None. All authentication routes use existing NestJS backend endpoints (`POST /api/auth/admin/login`).
+
+-------------------------------------------------------------------------------
+9. KNOWN LIMITATIONS
+-------------------------------------------------------------------------------
+None. Frontend build and route validation passed cleanly.
+
+-------------------------------------------------------------------------------
+10. GIT COMMIT INFORMATION
+-------------------------------------------------------------------------------
+Commit Hash: ed8662acb05f470dc6aec17b5ffe4037249ef190
+Commit Message: fix: separate admin authentication from student attendance
+===============================================================================
