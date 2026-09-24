@@ -1,0 +1,46 @@
+================================================================================
+PHASE 16.12 REPORT — PRODUCTION ATTENDANCE JWT PERSISTENCE & REGRESSION TESTS
+================================================================================
+
+1. Phase:
+   Phase 16.12 — Production Attendance JWT Persistence & Regression Verification
+
+2. Objective:
+   Ensure that the application JWT issued upon LINE verification and account linking 
+   is persisted to LocalStorage ('student_access_token'), restored during direct QR 
+   navigation (/attendance/session/[token]), and attached as 'Authorization: Bearer <token>' 
+   during photo proof submission. Add backend regression tests for authenticated 
+   production submission and unauthenticated rejection.
+
+3. Key Changes Made:
+   - `apps/web/src/components/attendance/StudentAttendanceForm.tsx`:
+     * Added mount restoration effect to synchronize `studentAccessToken` state from LocalStorage on direct QR scan navigation.
+     * Guaranteed `activeToken` resolution falls back to LocalStorage in both `loadProfileAndSession` and `handleSubmit`.
+     * Attached `Authorization: Bearer <token>` header to the POST `/api/attendance/sessions/${token}/submit` request.
+   - `apps/api/src/attendance/attendance-regression.spec.ts`:
+     * Created comprehensive unit regression test suite covering:
+       1. Authenticated production student resolution via Bearer JWT.
+       2. Unauthenticated production rejection (Missing JWT in production mode).
+       3. Dev header bypass attempt rejection in production mode.
+       4. Authenticated production attendance submission with Bearer JWT.
+       5. Unauthenticated production attendance submission rejection.
+   - `apps/api/package.json`:
+     * Configured `npm run test` script to execute the regression test suite.
+
+4. Test & Build Verification Results:
+   - Backend Regression Tests (`npm run test --workspace=apps/api`): PASSED (5/5 tests passed)
+   - Backend API Build (`npm run build --workspace=apps/api`): PASSED (Exit Code 0)
+   - Frontend Web Build (`npm run build --workspace=apps/web`): PASSED (Exit Code 0)
+
+5. Boundaries & Architecture Preserved:
+   - Database Schema: UNCHANGED
+   - LINE / LIFF Configuration: UNCHANGED
+   - QR / Session Business Rules: UNCHANGED
+   - Attendance Proof & Feedback Requirements: UNCHANGED
+
+6. Git Commit Hash:
+   - 2e3ef9aee86b21153afb512e1b3734963efdb8ba
+
+7. Git Commit Message:
+   - fix: persist student JWT and attach Bearer auth to attendance submission
+================================================================================

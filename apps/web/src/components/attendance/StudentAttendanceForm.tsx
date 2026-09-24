@@ -57,11 +57,21 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   const [submissionResult, setSubmissionResult] = useState<AttendanceSubmissionResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Ensure studentAccessToken state is synced with localStorage on mount (Direct QR navigation)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('student_access_token');
+      if (stored && stored !== studentAccessToken) {
+        setStudentAccessToken(stored);
+      }
+    }
+  }, [studentAccessToken]);
+
   // Load student profile & refresh session data for student
   const loadProfileAndSession = useCallback(async (devStudentId?: string, tok?: string) => {
     setProfileLoading(true);
     try {
-      const activeToken = tok || studentAccessToken || undefined;
+      const activeToken = tok || studentAccessToken || (typeof window !== 'undefined' ? localStorage.getItem('student_access_token') : null) || undefined;
       const [profileRes, refreshedSession] = await Promise.all([
         fetchStudentProfile(devStudentId, activeToken),
         fetchSessionByToken(token, devStudentId, activeToken).catch(() => null),
@@ -183,12 +193,13 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
 
     setSubmitting(true);
     try {
+      const activeToken = studentAccessToken || (typeof window !== 'undefined' ? localStorage.getItem('student_access_token') : null) || undefined;
       const result = await submitAttendance(
         token,
         photoFile,
         feedback,
         selectedDevStudentId || profile?.id,
-        studentAccessToken || undefined,
+        activeToken,
       );
       setSubmissionResult(result);
     } catch (err: any) {
