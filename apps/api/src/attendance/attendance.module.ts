@@ -4,11 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
 import { StorageModule } from '../storage/storage.module';
+import { AuthModule } from '../auth/auth.module';
 import { getRequiredJwtSecret } from '../config/jwt-secret.helper';
 
 @Module({
   imports: [
     StorageModule,
+    AuthModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         secret: getRequiredJwtSecret(configService),
@@ -24,3 +26,4 @@ import { getRequiredJwtSecret } from '../config/jwt-secret.helper';
   exports: [AttendanceService],
 })
 export class AttendanceModule {}
+

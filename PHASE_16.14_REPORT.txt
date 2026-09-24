@@ -1,0 +1,92 @@
+================================================================================
+PHASE 16.14 REPORT — AUDIT PRODUCTION CHECK-IN PHOTO PROOF PIPELINE
+================================================================================
+
+1. Status:
+   AUDIT COMPLETE (DIAGNOSIS ONLY — NO CODE MODIFIED)
+
+2. Exact Symptom:
+   A student successfully submits attendance with photo proof in production, and 
+   the Attendance database record is created. However, on the Admin Attendance 
+   Page (/admin/events/[id]/attendance), the check-in proof image fails to render, 
+   displaying only the browser's broken-image icon with the alt text "check-in proof".
+
+3. Frontend Upload Flow:
+   - File Selection: User selects image file via camera/file picker in StudentAttendanceForm.tsx. (VERIFIED)
+   - Validation: Validates MIME type (image/*) and size limit (<= 5MB). (VERIFIED)
+   - FormData: Appends photo under field name 'photo'. (VERIFIED)
+   - Transport: Sends POST request to /api/attendance/sessions/:token/submit with Authorization: Bearer <token>. (VERIFIED)
+
+4. Backend Upload Flow:
+   - Controller: AttendanceController.submitAttendance uses @UseInterceptors(FileInterceptor('photo')). (VERIFIED)
+   - Memory Storage: Multer receives uploaded file in memory as UploadedProofFile buffer. (VERIFIED)
+   - Service Delegation: Passes file buffer to AttendanceService.submitAttendance and StorageService.saveFile. (VERIFIED)
+
+5. Storage Provider Flow:
+   - Provider Selection: When STORAGE_PROVIDER=s3, StorageService delegates to S3StorageProvider. (VERIFIED)
+   - Bucket & Key: Generates collision-free key `proofs/<timestamp>-<hash>.<ext>` in bucket `university-event-proofs`. (VERIFIED)
+   - R2 Upload: Issues PutObjectCommand to S3Client with endpoint `https://<account-id>.r2.cloudflarestorage.com`. (VERIFIED - Upload succeeds)
+   - Returned URL: Constructs `publicUrl` as `${endpoint}/${bucketName}/${objectKey}` -> `https://<account-id>.r2.cloudflarestorage.com/university-event-proofs/proofs/<filename>`. (VERIFIED)
+
+6. Production Storage Configuration Audit:
+   - STORAGE_PROVIDER=s3 (VERIFIED)
+   - S3_BUCKET=university-event-proofs (VERIFIED)
+   - S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com (VERIFIED)
+   - S3_ACCESS_KEY_ID & S3_SECRET_ACCESS_KEY configured in Render environment variables. (VERIFIED - No secrets printed)
+
+7. Database Proof Reference Audit:
+   - Table: `attendances`
+   - Fields: `checkInProofUrl`, `checkOutProofUrl`
+   - Stored Value in Production: Complete URL pointing to R2 S3 API endpoint:
+     `https://<account-id>.r2.cloudflarestorage.com/university-event-proofs/proofs/<filename>` (VERIFIED)
+
+8. Admin Image Rendering Audit:
+   - Component: AdminEventAttendancePage (apps/web/src/app/admin/events/[id]/attendance/page.tsx)
+   - URL Formatting: `getImageUrl(path)` checks if path starts with `http`. Because the stored URL starts with `https://`, it returns the stored URL directly.
+   - HTML Rendering: `<img src="https://<account-id>.r2.cloudflarestorage.com/..." alt="Check-in proof" />` (VERIFIED)
+
+9. R2 Accessibility Audit:
+   - Endpoint Type: `*.r2.cloudflarestorage.com` is Cloudflare R2's S3 API Endpoint, intended strictly for authenticated S3 API calls (PutObject, GetObject with AWS SigV4 signatures). (VERIFIED)
+   - Direct Browser GET: Unauthenticated browser GET requests to `*.r2.cloudflarestorage.com` are rejected with HTTP 401 Unauthorized / HTTP 403 Forbidden. (VERIFIED)
+   - Signed-URL Generation: None currently implemented. (VERIFIED)
+   - R2 Storage Proxy / Stream Route: Current GET /api/attendance/uploads/proofs/:filename uses res.sendFile() which works only for LocalStorageProvider on disk, not S3/R2 storage. (VERIFIED)
+
+10. Exact Root Cause:
+    The S3StorageProvider constructs public object URLs using the S3 API Endpoint (`S3_ENDPOINT` = `https://<account-id>.r2.cloudflarestorage.com`). Cloudflare R2 does NOT permit unauthenticated web browsers to fetch images directly from the S3 API endpoint. When the Admin UI renders `<img src="https://<account-id>.r2.cloudflarestorage.com/..." />`, browser GET requests are rejected with 401/403, causing the image to render as a broken image icon.
+
+11. Evidence Supporting the Root Cause:
+    1. Photo upload to R2 bucket succeeds and database record is created with `checkInProofUrl`.
+    2. Stored `checkInProofUrl` contains `https://<account-id>.r2.cloudflarestorage.com/university-event-proofs/proofs/...`.
+    3. `*.r2.cloudflarestorage.com` endpoints require AWS SigV4 authentication and reject direct browser HTTP GET requests.
+    4. Admin UI `<img src="...">` tries to load the unauthenticated `*.r2.cloudflarestorage.com` URL directly, resulting in image load failure.
+
+12. Recommended Fix:
+    Implement a dual approach for production object serving:
+    - **Option A (Recommended Backend Proxy/Stream)**: Update `GET /api/attendance/uploads/proofs/:filename` (or `StorageService.getFileStream`) so that when `STORAGE_PROVIDER=s3`, the NestJS API streams the object from R2 via `GetObjectCommand` (or generates a pre-signed URL / proxy stream). Store backend media URLs (`/api/attendance/uploads/proofs/:filename`) or serve via backend API route.
+    - **Option B (Public R2 Subdomain / Custom Domain)**: Support `S3_PUBLIC_URL` environment variable (e.g. `https://pub-<hash>.r2.dev` or custom domain `https://media.yourdomain.com`) in `S3StorageProvider` so stored URLs use browser-accessible public endpoints.
+
+13. Files That Would Need Modification:
+    - `apps/api/src/storage/s3-storage.provider.ts`: Add `S3_PUBLIC_URL` support and `getObjectStream` method.
+    - `apps/api/src/storage/storage.service.ts`: Expose file streaming abstraction.
+    - `apps/api/src/attendance/attendance.controller.ts`: Update `GET /api/attendance/uploads/proofs/:filename` to stream from storage provider (supporting both local disk and R2 S3).
+    - `apps/web/src/app/admin/events/[id]/attendance/page.tsx`: Ensure `getImageUrl` correctly handles relative backend asset paths and R2 public domains.
+
+14. Manual Cloudflare/R2 Configuration Required (If Option B chosen):
+    - In Cloudflare Dashboard -> R2 -> `university-event-proofs` -> Settings -> Enable "Public Access" (`r2.dev` subdomain) or connect a Custom Domain.
+    - Set `S3_PUBLIC_URL` in Render environment variables.
+
+15. Security Considerations:
+    - Prevent path traversal attacks when serving proof files (`path.basename` validation).
+    - Maintain admin authentication for inspecting proof photos if accessed via API proxy.
+    - Keep S3 credentials (`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`) secure in environment variables.
+
+16. What MUST NOT be Changed:
+    - Do NOT change database schema (`checkInProofUrl` / `checkOutProofUrl`).
+    - Do NOT remove S3StorageProvider or LocalStorageProvider abstractions.
+    - Do NOT change LINE/LIFF authentication or QR session token rules.
+
+17. Tests That Should be Performed After Fix:
+    - Test upload photo proof in dev mode (LocalStorageProvider).
+    - Test upload photo proof in production mode (S3StorageProvider / R2).
+    - Verify image renders cleanly in browser on Admin Attendance Page.
+================================================================================

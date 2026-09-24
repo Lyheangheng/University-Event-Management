@@ -1,12 +1,14 @@
 import {
   Injectable,
   BadRequestException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import {
@@ -14,7 +16,10 @@ import {
   StorageFile,
   SaveFileOptions,
   StoredFileResult,
+  FileStreamResult,
+  extractAndSanitizeFilename,
 } from './storage.interface';
+import { Readable } from 'stream';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
@@ -148,7 +153,66 @@ export class S3StorageProvider implements StorageProvider {
     };
   }
 
+  async getFileStream(
+    filenameOrUrl: string,
+    subfolder = 'proofs',
+  ): Promise<FileStreamResult> {
+    const safeFilename = extractAndSanitizeFilename(filenameOrUrl);
+    const objectKey = `${subfolder}/${safeFilename}`;
+
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: objectKey,
+      });
+
+      const response = await this.s3Client.send(command);
+
+      if (!response.Body) {
+        throw new NotFoundException('Proof image body is empty or missing');
+      }
+
+      const ext = path.extname(safeFilename).toLowerCase();
+      const fallbackMime =
+        ext === '.png'
+          ? 'image/png'
+          : ext === '.webp'
+            ? 'image/webp'
+            : 'image/jpeg';
+
+      const mimetype = response.ContentType || fallbackMime;
+      const contentLength = response.ContentLength;
+
+      const stream = response.Body as Readable;
+
+      return {
+        stream,
+        mimetype,
+        contentLength,
+      };
+    } catch (error: any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error(
+        `[S3StorageProvider] Error fetching object '${objectKey}' from bucket '${this.bucketName}'`,
+        error,
+      );
+      if (
+        error.name === 'NoSuchKey' ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
+        throw new NotFoundException('Proof image not found in remote storage');
+      }
+      throw new BadRequestException('Failed to retrieve proof image from storage');
+    }
+  }
+
   async getFilePath(
+
     filename: string,
     subfolder = 'proofs',
   ): Promise<{ filePath: string; mimetype: string }> {

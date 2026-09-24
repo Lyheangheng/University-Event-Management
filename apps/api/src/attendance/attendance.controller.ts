@@ -9,11 +9,15 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AttendanceService, UploadedProofFile } from './attendance.service';
 import { StorageService } from '../storage/storage.service';
 import { ConfigService } from '@nestjs/config';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { Response, Request } from 'express';
 
 function extractAuthHeaders(headers: Record<string, string>, req?: Request) {
@@ -123,12 +127,28 @@ export class AttendanceController {
 
   /**
    * GET /api/attendance/uploads/proofs/:filename
-   * Safely serve stored proof photos using storage abstraction.
+   * Stream stored proof photo securely for authenticated admin users.
    */
   @Get('uploads/proofs/:filename')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   async getProofImage(@Param('filename') filename: string, @Res() res: Response) {
-    const { filePath, mimetype } = await this.storageService.getFilePath(filename, 'proofs');
+    const { stream, mimetype, contentLength } = await this.storageService.getFileStream(
+      filename,
+      'proofs',
+    );
+
     res.setHeader('Content-Type', mimetype);
-    return res.sendFile(filePath);
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    if (contentLength) {
+      res.setHeader('Content-Length', contentLength.toString());
+    }
+
+    return stream.pipe(res);
   }
 }
+

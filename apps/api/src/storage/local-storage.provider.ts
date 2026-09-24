@@ -1,5 +1,12 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { StorageProvider, StorageFile, SaveFileOptions, StoredFileResult } from './storage.interface';
+import {
+  StorageProvider,
+  StorageFile,
+  SaveFileOptions,
+  StoredFileResult,
+  FileStreamResult,
+  extractAndSanitizeFilename,
+} from './storage.interface';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
@@ -79,6 +86,26 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   /**
+   * Stream stored file safely with path traversal checks
+   */
+  async getFileStream(
+    filenameOrUrl: string,
+    subfolder = 'proofs',
+  ): Promise<FileStreamResult> {
+    const safeFilename = extractAndSanitizeFilename(filenameOrUrl);
+    const { filePath, mimetype } = await this.getFilePath(safeFilename, subfolder);
+
+    const stats = await fs.promises.stat(filePath);
+    const stream = fs.createReadStream(filePath);
+
+    return {
+      stream,
+      mimetype,
+      contentLength: stats.size,
+    };
+  }
+
+  /**
    * Resolve safe file path and verified content type with strict path traversal prevention
    */
   async getFilePath(filename: string, subfolder = 'proofs'): Promise<{ filePath: string; mimetype: string }> {
@@ -136,3 +163,4 @@ export class LocalStorageProvider implements StorageProvider {
     return `/api/attendance/uploads/${subfolder}/${safeFilename}`;
   }
 }
+

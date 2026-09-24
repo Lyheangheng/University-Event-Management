@@ -12,6 +12,103 @@ import { formatEventDate, formatTimeRange } from '../../../../../lib/formatters'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+function AuthenticatedProofImage({
+  src,
+  alt,
+  token,
+  className,
+}: {
+  src: string;
+  alt: string;
+  token: string | null;
+  className?: string;
+}) {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!src || !token) {
+      setLoading(false);
+      setError(true);
+      return;
+    }
+
+    let isMounted = true;
+    let createdUrl: string | null = null;
+    setLoading(true);
+    setError(false);
+
+    let filename = src.trim();
+    if (filename.includes('?')) {
+      filename = filename.split('?')[0];
+    }
+    if (filename.includes('/')) {
+      filename = filename.split('/').pop() || filename;
+    }
+
+    const targetEndpoint = `${API_BASE_URL}/api/attendance/uploads/proofs/${encodeURIComponent(filename)}`;
+
+    fetch(targetEndpoint, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch proof image: ${res.status}`);
+        }
+        return res.blob();
+      })
+      .then((blob) => {
+        if (isMounted) {
+          createdUrl = URL.createObjectURL(blob);
+          setObjectUrl(createdUrl);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Error loading proof image:', err);
+        if (isMounted) {
+          setError(true);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl);
+      }
+    };
+  }, [src, token]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 animate-pulse text-xs">
+        <span>Loading proof photo...</span>
+      </div>
+    );
+  }
+
+  if (error || !objectUrl) {
+    return (
+      <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
+        <span>Failed to load proof photo</span>
+        <span className="text-[10px] text-slate-600">Unauthorized or image missing</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-48 rounded-xl border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={objectUrl} alt={alt} className={className || 'w-full h-full object-cover'} />
+    </div>
+  );
+}
+
 export default function AdminEventAttendancePage() {
   const params = useParams();
   const router = useRouter();
@@ -403,15 +500,12 @@ export default function AdminEventAttendancePage() {
                   </span>
                 </div>
 
-                {getImageUrl(selectedRecord.checkInProofUrl) ? (
-                  <div className="w-full h-48 rounded-xl border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getImageUrl(selectedRecord.checkInProofUrl)!}
-                      alt="Check-in proof"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                {selectedRecord.checkInProofUrl ? (
+                  <AuthenticatedProofImage
+                    src={selectedRecord.checkInProofUrl}
+                    alt="Check-in proof"
+                    token={token}
+                  />
                 ) : (
                   <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs">
                     <span>No proof photo uploaded</span>
@@ -430,15 +524,12 @@ export default function AdminEventAttendancePage() {
                   </span>
                 </div>
 
-                {getImageUrl(selectedRecord.checkOutProofUrl) ? (
-                  <div className="w-full h-48 rounded-xl border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getImageUrl(selectedRecord.checkOutProofUrl)!}
-                      alt="Check-out proof"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                {selectedRecord.checkOutProofUrl ? (
+                  <AuthenticatedProofImage
+                    src={selectedRecord.checkOutProofUrl}
+                    alt="Check-out proof"
+                    token={token}
+                  />
                 ) : (
                   <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
                     <span>{selectedRecord.checkOutTime ? 'No photo file' : 'INCOMPLETE'}</span>

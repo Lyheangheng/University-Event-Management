@@ -2,7 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LocalStorageProvider } from './local-storage.provider';
 import { S3StorageProvider } from './s3-storage.provider';
-import { StorageProvider, StorageFile, SaveFileOptions, StoredFileResult } from './storage.interface';
+import {
+  StorageProvider,
+  StorageFile,
+  SaveFileOptions,
+  StoredFileResult,
+  FileStreamResult,
+} from './storage.interface';
 
 @Injectable()
 export class StorageService {
@@ -33,6 +39,10 @@ export class StorageService {
     return this.provider.save(file, options);
   }
 
+  async getFileStream(filenameOrUrl: string, subfolder?: string): Promise<FileStreamResult> {
+    return this.provider.getFileStream(filenameOrUrl, subfolder);
+  }
+
   async getFilePath(filename: string, subfolder?: string): Promise<{ filePath: string; mimetype: string }> {
     return this.provider.getFilePath(filename, subfolder);
   }
@@ -45,3 +55,4 @@ export class StorageService {
     return this.provider.getPublicUrl(filename, subfolder);
   }
 }
+
