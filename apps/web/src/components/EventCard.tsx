@@ -2,16 +2,41 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { EventItem } from '../types/event';
 import { formatEventDate, formatTimeRange, calculateEventStatus } from '../lib/formatters';
+import { fetchActiveSession } from '../lib/attendance-api';
 
 interface EventCardProps {
   event: EventItem;
 }
 
 export function EventCard({ event }: EventCardProps) {
+  const router = useRouter();
   const [imageError, setImageError] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(false);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+
   const status = calculateEventStatus(event.startTime, event.endTime);
+
+  const handleAttendanceClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setSessionNotice(null);
+    setCheckingSession(true);
+
+    try {
+      const session = await fetchActiveSession(event.id);
+      if (session && session.token) {
+        router.push(`/attendance/session/${session.token}`);
+      } else {
+        setSessionNotice('Attendance is not currently open for this event.');
+      }
+    } catch {
+      setSessionNotice('Attendance is not currently open for this event.');
+    } finally {
+      setCheckingSession(false);
+    }
+  };
 
   const getStatusBadge = () => {
     switch (status) {
@@ -107,6 +132,19 @@ export function EventCard({ event }: EventCardProps) {
           </div>
         </div>
 
+        {sessionNotice && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium flex items-center justify-between gap-2 animate-fade-in">
+            <span>⚠️ {sessionNotice}</span>
+            <button
+              type="button"
+              onClick={() => setSessionNotice(null)}
+              className="text-slate-400 hover:text-white text-xs font-bold shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <div className="mt-2 grid grid-cols-2 gap-2">
           <Link
             href={`/events/${event.id}`}
@@ -118,15 +156,17 @@ export function EventCard({ event }: EventCardProps) {
             </svg>
           </Link>
 
-          <Link
-            href={`/admin/events/${event.id}/attendance`}
-            className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-500/20 hover:border-emerald-500 text-emerald-300 hover:text-white font-medium text-xs transition-all duration-200"
+          <button
+            type="button"
+            onClick={handleAttendanceClick}
+            disabled={checkingSession}
+            className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-500/20 hover:border-emerald-500 text-emerald-300 hover:text-white font-medium text-xs transition-all duration-200 disabled:opacity-50"
           >
-            Attendance
+            {checkingSession ? 'Checking...' : 'Attendance'}
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-          </Link>
+          </button>
         </div>
       </div>
     </div>
