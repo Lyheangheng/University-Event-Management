@@ -292,10 +292,16 @@ export default function AdminEventAttendancePage() {
             ← Admin Dashboard
           </Link>
           <Link
-            href={`/events/${event.id}/display`}
-            className="px-4 py-2 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 text-xs font-bold transition-all"
+            href={`/admin/events/${event.id}/projector/check-in`}
+            className="px-4 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 text-xs font-bold transition-all"
           >
-            Projector Display
+            Check-In Display
+          </Link>
+          <Link
+            href={`/admin/events/${event.id}/projector/check-out`}
+            className="px-4 py-2 rounded-xl bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all"
+          >
+            Check-Out Display
           </Link>
           <button
             onClick={handleLogout}

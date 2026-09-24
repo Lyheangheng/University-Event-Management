@@ -91,15 +91,22 @@ function getAuthHeader(devStudentId?: string, studentToken?: string): Record<str
 }
 
 /**
- * Fetch current active session for an event (used by Projector display)
+ * Fetch persistent session for an event (used by Projector display)
  */
-export async function fetchActiveSession(eventId: string): Promise<ActiveSessionData | null> {
-  const res = await fetch(`${API_BASE_URL}/api/attendance/events/${eventId}/session`, {
+export async function fetchProjectorSession(eventId: string, type: 'CHECK_IN' | 'CHECK_OUT', token: string): Promise<ActiveSessionData | null> {
+  const res = await fetch(`${API_BASE_URL}/api/attendance/events/${eventId}/projector/${type}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     cache: 'no-store',
   });
 
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('UNAUTHORIZED');
+  }
+
   if (!res.ok) {
-    throw new Error(`Failed to fetch active session: ${res.statusText}`);
+    throw new Error(`Failed to fetch projector session: ${res.statusText}`);
   }
 
   const json: ApiResponse<ActiveSessionData | null> = await res.json();

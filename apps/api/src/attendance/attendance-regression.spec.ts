@@ -380,99 +380,80 @@ async function runRegressionTests() {
   assert.strictEqual(createdEventFail.title, 'Resilient Event');
   console.log('✅ Test 12 Passed: Event creation succeeded despite LINE notification error.');
 
-  // Test 13 (Phase 16.17): AttendanceService getActiveSession triggers check-in and check-out notifications
-  console.log('Test 13: AttendanceService getActiveSession triggers check-in & check-out notifications...');
-  let checkInOpenedToken: string | null = null;
-  let checkOutOpenedToken: string | null = null;
-  const mockLineSessionNotifier: any = {
-    notifyCheckInOpened: async (event: any, token: string) => {
-      checkInOpenedToken = token;
-      return 1;
-    },
-    notifyCheckOutOpened: async (event: any, token: string) => {
-      checkOutOpenedToken = token;
-      return 1;
-    },
-  };
+  // Test 13 (Phase 16.19): getProjectorSession creates persistent QR identifiers
+  console.log('Test 13: getProjectorSession creates persistent CHECK_IN and CHECK_OUT sessions...');
   const now = Date.now();
   const mockCheckInEvent = {
-    id: 'event-ci-1',
-    title: 'Check-In Active Event',
-    startTime: new Date(now - 2 * 60 * 1000),
+    id: 'event-persistent-1',
+    title: 'Persistent Event',
+    startTime: new Date(now - 2 * 60 * 1000), // active checkin
     endTime: new Date(now + 120 * 60 * 1000),
   };
-  const mockCheckOutEvent = {
-    id: 'event-co-1',
-    title: 'Check-Out Active Event',
-    startTime: new Date(now - 120 * 60 * 1000),
-    endTime: new Date(now + 5 * 60 * 1000),
-  };
+  let createdSessions: any[] = [];
   const mockPrismaSessions: any = {
     event: {
-      findUnique: async ({ where }: any) => {
-        if (where.id === mockCheckInEvent.id) return mockCheckInEvent;
-        if (where.id === mockCheckOutEvent.id) return mockCheckOutEvent;
-        return null;
-      },
+      findUnique: async ({ where }: any) => mockCheckInEvent,
     },
     attendanceSession: {
-      findFirst: async () => null,
-      create: async ({ data }: any) => ({
-        id: `sess-${data.sessionType}`,
-        ...data,
-      }),
+      findFirst: async ({ where }: any) => createdSessions.find(s => s.sessionType === where.sessionType),
+      create: async ({ data }: any) => {
+        const s = { id: `sess-${data.sessionType}`, ...data };
+        createdSessions.push(s);
+        return s;
+      },
+      findUnique: async ({ where }: any) => createdSessions.find(s => s.token === where.token),
     },
+    student: {
+      findUnique: async () => null,
+      findFirst: async () => null,
+    }
   };
-  const attendanceServiceNotifier = new AttendanceService(
+  const attendanceServicePersistent = new AttendanceService(
     mockPrismaSessions,
     mockConfig,
     mockStorage,
     mockJwt,
-    mockLineSessionNotifier,
+    mockLineMessaging,
   );
-  const ciSess = await attendanceServiceNotifier.getActiveSession('event-ci-1');
-  assert(ciSess, 'ciSess must not be null');
-  assert.strictEqual(ciSess.sessionType, 'CHECK_IN');
-  assert.strictEqual(checkInOpenedToken, ciSess.token);
 
-  const coSess = await attendanceServiceNotifier.getActiveSession('event-co-1');
-  assert(coSess, 'coSess must not be null');
-  assert.strictEqual(coSess.sessionType, 'CHECK_OUT');
-  assert.strictEqual(checkOutOpenedToken, coSess.token);
-  console.log('✅ Test 13 Passed: AttendanceService session creation successfully triggered CHECK_IN and CHECK_OUT notifications.');
+  const ciSess1 = await attendanceServicePersistent.getProjectorSession('event-persistent-1', 'CHECK_IN' as any);
+  assert(ciSess1, 'ciSess1 must not be null');
+  assert.strictEqual(ciSess1.sessionType, 'CHECK_IN');
 
-  // Test 14 (Phase 16.17): Duplicate session lookup does not re-trigger notifications (Idempotency)
-  console.log('Test 14: Duplicate session lookup does not re-trigger notification...');
-  let triggerCount = 0;
-  const mockLineIdempotency: any = {
-    notifyCheckInOpened: async () => {
-      triggerCount++;
-      return 1;
-    },
+  const coSess1 = await attendanceServicePersistent.getProjectorSession('event-persistent-1', 'CHECK_OUT' as any);
+  assert(coSess1, 'coSess1 must not be null');
+  assert.strictEqual(coSess1.sessionType, 'CHECK_OUT');
+
+  // Both QRs persist identically on subsequent calls
+  const ciSess2 = await attendanceServicePersistent.getProjectorSession('event-persistent-1', 'CHECK_IN' as any);
+  assert.strictEqual(ciSess1.token, ciSess2.token, 'CHECK_IN token should persist');
+
+  const coSess2 = await attendanceServicePersistent.getProjectorSession('event-persistent-1', 'CHECK_OUT' as any);
+  assert.strictEqual(coSess1.token, coSess2.token, 'CHECK_OUT token should persist');
+  console.log('✅ Test 13 Passed: getProjectorSession persistent QR identifiers verified.');
+
+  // Test 14 (Phase 16.19): getSessionByToken independently enforces CHECK_IN and CHECK_OUT windows
+  console.log('Test 14: getSessionByToken enforces validity windows based on server time and event boundaries...');
+  
+  // Set up mock session where event is returned with the session
+  const mockSessionWithEvent = {
+    ...ciSess1,
+    event: mockCheckInEvent
   };
-  const mockPrismaExistingSession: any = {
-    event: { findUnique: async () => mockCheckInEvent },
-    attendanceSession: {
-      findFirst: async () => ({
-        id: 'existing-sess-1',
-        eventId: 'event-ci-1',
-        sessionType: 'CHECK_IN',
-        token: 'existing-token-abc',
-        startTime: new Date(now - 5 * 60 * 1000),
-        endTime: new Date(now + 5 * 60 * 1000),
-      }),
-    },
+  mockPrismaSessions.attendanceSession.findUnique = async () => mockSessionWithEvent;
+  
+  const fetchedSess = await attendanceServicePersistent.getSessionByToken(ciSess1.token, undefined, undefined);
+  assert.strictEqual(fetchedSess.isValid, true, 'Should be valid because we are within 30 min of startTime');
+
+  // Let's test checking out (which should be false currently)
+  const mockCoSessionWithEvent = {
+    ...coSess1,
+    event: mockCheckInEvent
   };
-  const attendanceServiceExisting = new AttendanceService(
-    mockPrismaExistingSession,
-    mockConfig,
-    mockStorage,
-    mockJwt,
-    mockLineIdempotency,
-  );
-  await attendanceServiceExisting.getActiveSession('event-ci-1');
-  assert.strictEqual(triggerCount, 0, 'Retrieving an existing session should not re-trigger notification');
-  console.log('✅ Test 14 Passed: Existing session retrieval did not re-trigger notifications.');
+  mockPrismaSessions.attendanceSession.findUnique = async () => mockCoSessionWithEvent;
+  const fetchedCoSess = await attendanceServicePersistent.getSessionByToken(coSess1.token, undefined, undefined);
+  assert.strictEqual(fetchedCoSess.isValid, false, 'Should be invalid because checkout window is at endTime +/- 30m');
+  console.log('✅ Test 14 Passed: getSessionByToken validity logic verified.');
 
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }

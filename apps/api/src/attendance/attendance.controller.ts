@@ -14,6 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AttendanceService, UploadedProofFile } from './attendance.service';
 import { StorageService } from '../storage/storage.service';
+import { AttendanceSessionType } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -44,19 +45,27 @@ export class AttendanceController {
   ) {}
 
   /**
-   * GET /api/attendance/events/:eventId/session
-   * Public endpoint used by projector display to obtain the active attendance session.
+   * GET /api/attendance/events/:eventId/projector/:type
+   * Public endpoint used by projector display to obtain the persistent attendance session.
    */
-  @Get('events/:eventId/session')
-  async getActiveSession(@Param('eventId') eventId: string) {
-    const session = await this.attendanceService.getActiveSession(eventId);
+  @Get('events/:eventId/projector/:type')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async getProjectorSession(
+    @Param('eventId') eventId: string,
+    @Param('type') typeString: string,
+  ) {
+    const type = typeString.toUpperCase() === 'CHECK_OUT' 
+      ? AttendanceSessionType.CHECK_OUT 
+      : AttendanceSessionType.CHECK_IN;
+      
+    const session = await this.attendanceService.getProjectorSession(eventId, type);
     if (!session) {
       return null;
     }
 
-    const frontendBaseUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const attendanceUrl = `${frontendBaseUrl}/attendance/session/${session.token}`;
+    const liffId = '2011689671-SKaMIQlb';
+    const attendanceUrl = `https://liff.line.me/${liffId}?token=${session.token}`;
 
     return {
       id: session.id,

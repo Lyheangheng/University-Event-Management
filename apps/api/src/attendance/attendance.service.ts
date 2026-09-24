@@ -33,9 +33,9 @@ export class AttendanceService {
   ) {}
 
   /**
-   * Generates or retrieves the active attendance session for an event.
+   * Retrieves or creates a persistent projector session for a given event and type.
    */
-  async getActiveSession(eventId: string) {
+  async getProjectorSession(eventId: string, type: AttendanceSessionType) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
     });
@@ -44,71 +44,47 @@ export class AttendanceService {
       throw new NotFoundException(`Event with ID "${eventId}" not found`);
     }
 
-    const serverNow = new Date();
-    const eventStartTime = new Date(event.startTime);
-    const eventEndTime = new Date(event.endTime);
-
-    const checkInStart = eventStartTime;
-    const checkInEnd = new Date(eventStartTime.getTime() + 10 * 60 * 1000);
-
-    const checkOutStart = new Date(eventEndTime.getTime() - 15 * 60 * 1000);
-    const checkOutEnd = eventEndTime;
-
-    let activeType: AttendanceSessionType | null = null;
-    let windowStart: Date;
-    let windowEnd: Date;
-
-    if (serverNow >= checkInStart && serverNow < checkInEnd) {
-      activeType = AttendanceSessionType.CHECK_IN;
-      windowStart = checkInStart;
-      windowEnd = checkInEnd;
-    } else if (serverNow >= checkOutStart && serverNow < checkOutEnd) {
-      activeType = AttendanceSessionType.CHECK_OUT;
-      windowStart = checkOutStart;
-      windowEnd = checkOutEnd;
-    } else {
-      return null;
-    }
-
-    const existingSession = await this.prisma.attendanceSession.findFirst({
+    let session = await this.prisma.attendanceSession.findFirst({
       where: {
         eventId,
-        sessionType: activeType,
-        startTime: { lte: serverNow },
-        endTime: { gt: serverNow },
+        sessionType: type,
       },
     });
 
-    if (existingSession) {
-      return existingSession;
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
-
-    const newSession = await this.prisma.attendanceSession.create({
-      data: {
-        eventId,
-        sessionType: activeType,
-        token,
-        startTime: windowStart,
-        endTime: windowEnd,
-      },
-    });
-
-    // Trigger LINE Official Account notification for new active session
-    try {
-      if (newSession.sessionType === AttendanceSessionType.CHECK_IN) {
-        await this.lineMessagingService.notifyCheckInOpened(event, newSession.token);
-      } else if (newSession.sessionType === AttendanceSessionType.CHECK_OUT) {
-        await this.lineMessagingService.notifyCheckOutOpened(event, newSession.token);
+    if (!session) {
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Calculate exact windows for the database records
+      const eventStartTime = new Date(event.startTime);
+      const eventEndTime = new Date(event.endTime);
+      
+      let windowStart: Date;
+      let windowEnd: Date;
+      
+      if (type === AttendanceSessionType.CHECK_IN) {
+        windowStart = eventStartTime;
+        windowEnd = new Date(eventStartTime.getTime() + 30 * 60 * 1000);
+      } else {
+        windowStart = new Date(eventEndTime.getTime() - 30 * 60 * 1000);
+        windowEnd = new Date(eventEndTime.getTime() + 30 * 60 * 1000);
       }
-    } catch (err: any) {
-      this.logger.error(
-        `Failed to deliver LINE session notification for session '${newSession.id}': ${err?.message || err}`,
-      );
+
+      session = await this.prisma.attendanceSession.create({
+        data: {
+          eventId,
+          sessionType: type,
+          token,
+          startTime: windowStart,
+          endTime: windowEnd,
+        },
+      });
+
+      // Since the session is persistent, we don't spam notifications here anymore.
+      // Notifications are handled separately by a cron or when the window actually opens.
+      // For now, Phase 16.19 removes the notification trigger from session creation because session != window open.
     }
 
-    return newSession;
+    return session;
   }
 
 
@@ -146,10 +122,25 @@ export class AttendanceService {
     }
 
     const serverNow = new Date();
-
-    if (serverNow < session.startTime || serverNow >= session.endTime) {
-      throw new BadRequestException('Attendance session has expired or is not yet active');
+    const eventStartTime = new Date(session.event.startTime);
+    const eventEndTime = new Date(session.event.endTime);
+    
+    let windowStart: Date;
+    let windowEnd: Date;
+    
+    if (session.sessionType === AttendanceSessionType.CHECK_IN) {
+      windowStart = eventStartTime;
+      windowEnd = new Date(eventStartTime.getTime() + 30 * 60 * 1000);
+    } else {
+      windowStart = new Date(eventEndTime.getTime() - 30 * 60 * 1000);
+      windowEnd = new Date(eventEndTime.getTime() + 30 * 60 * 1000);
     }
+
+    const isOpen = serverNow >= windowStart && serverNow <= windowEnd;
+
+    // We no longer throw an exception on fetch if it's outside the window,
+    // so the frontend can display "Check-in is not currently open".
+    // We just return isValid: isOpen
 
     let existingAttendance = null;
     try {
@@ -184,9 +175,9 @@ export class AttendanceService {
       eventId: session.eventId,
       sessionType: session.sessionType,
       token: session.token,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      isValid: true,
+      startTime: windowStart,
+      endTime: windowEnd,
+      isValid: isOpen,
       event: session.event,
       existingAttendance,
     };
@@ -332,8 +323,27 @@ export class AttendanceService {
     }
 
     const serverNow = new Date();
-    if (serverNow < session.startTime || serverNow >= session.endTime) {
-      throw new BadRequestException('Attendance session has expired or is not yet active');
+    
+    const eventStartTime = new Date(session.event.startTime);
+    const eventEndTime = new Date(session.event.endTime);
+    
+    let windowStart: Date;
+    let windowEnd: Date;
+    
+    if (session.sessionType === AttendanceSessionType.CHECK_IN) {
+      windowStart = eventStartTime;
+      windowEnd = new Date(eventStartTime.getTime() + 30 * 60 * 1000);
+    } else {
+      windowStart = new Date(eventEndTime.getTime() - 30 * 60 * 1000);
+      windowEnd = new Date(eventEndTime.getTime() + 30 * 60 * 1000);
+    }
+
+    if (serverNow < windowStart || serverNow > windowEnd) {
+      if (session.sessionType === AttendanceSessionType.CHECK_IN) {
+        throw new BadRequestException('Check-in is not currently open.');
+      } else {
+        throw new BadRequestException('Check-out is not currently open.');
+      }
     }
 
     // 2. Resolve authoritative student identity from JWT / dev header
