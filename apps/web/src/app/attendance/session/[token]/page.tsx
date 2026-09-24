@@ -27,7 +27,8 @@ export default function AttendanceSessionPage() {
       } else if (err.message === 'SESSION_EXPIRED') {
         setError('Attendance session has expired or is not yet active.');
       } else {
-        setError(err.message || 'Unable to validate attendance session.');
+        console.error('Session validation error:', err);
+        setError('Unable to validate attendance session. Please check your connection and try again.');
       }
     } finally {
       setLoading(false);
@@ -40,10 +41,14 @@ export default function AttendanceSessionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none">
-        <div className="w-16 h-16 rounded-2xl bg-slate-800 mb-6" />
-        <div className="w-48 h-6 bg-slate-800 rounded-full mb-4" />
-        <div className="w-64 h-10 bg-slate-800 rounded-xl" />
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4">
+        <div className="w-16 h-16 rounded-full bg-indigo-500/20 border-2 border-indigo-500/40 flex items-center justify-center animate-spin">
+          <div className="w-8 h-8 rounded-full border-4 border-indigo-400 border-t-transparent" />
+        </div>
+        <div className="text-center space-y-1">
+          <h2 className="text-lg font-bold text-slate-200">Verifying session...</h2>
+          <p className="text-sm text-slate-400">Please wait while we validate your QR code.</p>
+        </div>
       </div>
     );
   }
@@ -57,7 +62,7 @@ export default function AttendanceSessionPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-slate-100">
-              Attendance Session Expired or Invalid
+              Attendance Session Invalid
             </h1>
             <p className="text-slate-400 text-sm">
               {error || 'This QR session code is no longer active.'}
@@ -70,6 +75,35 @@ export default function AttendanceSessionPage() {
               className="inline-block w-full py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
             >
               Return to Events
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sessionData.isValid) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 select-none">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl font-bold">
+            ⏳
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black text-slate-100">
+              {sessionData.sessionType === 'CHECK_IN' ? 'Check-in is currently closed.' : 'Check-out is currently closed.'}
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Please wait until the attendance window opens or check the event schedule.
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <Link
+              href={`/events/${sessionData.eventId}`}
+              className="inline-block w-full py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
+            >
+              View Event Details
             </Link>
           </div>
         </div>

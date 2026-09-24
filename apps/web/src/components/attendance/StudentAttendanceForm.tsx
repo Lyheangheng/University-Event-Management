@@ -204,7 +204,12 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
       );
       setSubmissionResult(result);
     } catch (err: any) {
-      setFormError(err.message || 'Failed to submit attendance. Please try again.');
+      const msg = err.message || 'Failed to submit attendance. Please try again.';
+      if (msg.includes('Student authentication required')) {
+        setFormError('Your account is not properly authenticated. Please ensure your LINE account is linked.');
+      } else {
+        setFormError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -536,9 +541,11 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
           </div>
 
           {profileLoading ? (
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 animate-pulse space-y-2">
-              <div className="h-4 bg-slate-800 rounded w-1/2" />
-              <div className="h-4 bg-slate-800 rounded w-3/4" />
+            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center justify-center space-y-3">
+              <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+              <p className="text-sm font-medium text-slate-400">
+                Connecting to LINE and verifying student account...
+              </p>
             </div>
           ) : profile ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs">
