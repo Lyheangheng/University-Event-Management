@@ -4,13 +4,14 @@ import { ConfigService } from '@nestjs/config';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
 import { StorageModule } from '../storage/storage.module';
+import { getRequiredJwtSecret } from '../config/jwt-secret.helper';
 
 @Module({
   imports: [
     StorageModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwtSecret') || configService.get<string>('JWT_SECRET') || 'dev-secret-key-university-event-system',
+        secret: getRequiredJwtSecret(configService),
         signOptions: {
           expiresIn: configService.get<string>('jwtExpiresIn') || '1d',
         },

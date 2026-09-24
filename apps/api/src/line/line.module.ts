@@ -5,13 +5,14 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { LineService } from './line.service';
 import { LineMessagingService } from './line-messaging.service';
 import { LineController } from './line.controller';
+import { getRequiredJwtSecret } from '../config/jwt-secret.helper';
 
 @Module({
   imports: [
     PrismaModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwtSecret') || configService.get<string>('JWT_SECRET') || 'dev-secret-key-university-event-system',
+        secret: getRequiredJwtSecret(configService),
         signOptions: {
           expiresIn: configService.get<string>('jwtExpiresIn') || '1d',
         },

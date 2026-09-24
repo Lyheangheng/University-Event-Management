@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import { AttendanceService } from './attendance.service';
 import { UnauthorizedException } from '@nestjs/common';
+import { getRequiredJwtSecret, DEV_DEFAULT_JWT_SECRET } from '../config/jwt-secret.helper';
 
 async function runRegressionTests() {
   console.log('--- Running Attendance Auth & Submission Regression Tests ---');
@@ -52,7 +53,11 @@ async function runRegressionTests() {
   };
 
   const mockConfig: any = {
-    get: (key: string) => (key === 'nodeEnv' || key === 'NODE_ENV' ? 'production' : null),
+    get: (key: string) => {
+      if (key === 'nodeEnv' || key === 'NODE_ENV') return 'production';
+      if (key === 'jwtSecret' || key === 'JWT_SECRET') return 'prod-test-secret-key-12345';
+      return null;
+    },
   };
 
   const mockStorage: any = {
@@ -149,6 +154,39 @@ async function runRegressionTests() {
   assert.strictEqual(subResultWithParam.message, 'Check-in recorded successfully.');
   assert.strictEqual(subResultWithParam.studentId, mockStudent.studentId);
   console.log('✅ Test 6 Passed: Submission with both JWT and student param succeeded in production.');
+
+  // Test 7: Production JWT Secret Requirement Security Guard
+  console.log('Test 7: Production JWT Secret requirement security guard...');
+  const prodConfigNoSecret: any = {
+    get: (key: string) => (key === 'nodeEnv' || key === 'NODE_ENV' ? 'production' : null),
+  };
+  try {
+    getRequiredJwtSecret(prodConfigNoSecret);
+    assert.fail('Should have thrown critical production security Error');
+  } catch (err: any) {
+    assert(err.message.includes('CRITICAL PRODUCTION SECURITY ERROR'), 'Should reject missing JWT_SECRET in production');
+  }
+
+  const prodConfigDevSecret: any = {
+    get: (key: string) => {
+      if (key === 'nodeEnv' || key === 'NODE_ENV') return 'production';
+      if (key === 'jwtSecret' || key === 'JWT_SECRET') return DEV_DEFAULT_JWT_SECRET;
+      return null;
+    },
+  };
+  try {
+    getRequiredJwtSecret(prodConfigDevSecret);
+    assert.fail('Should have thrown critical production security Error');
+  } catch (err: any) {
+    assert(err.message.includes('CRITICAL PRODUCTION SECURITY ERROR'), 'Should reject dev secret fallback in production');
+  }
+
+  const devConfigNoSecret: any = {
+    get: (key: string) => (key === 'nodeEnv' || key === 'NODE_ENV' ? 'development' : null),
+  };
+  const devSecret = getRequiredJwtSecret(devConfigNoSecret);
+  assert.strictEqual(devSecret, DEV_DEFAULT_JWT_SECRET, 'Should allow dev fallback in development mode');
+  console.log('✅ Test 7 Passed: Production JWT secret requirement security guard verified.');
 
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }

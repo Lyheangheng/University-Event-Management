@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
+import { getRequiredJwtSecret } from '../config/jwt-secret.helper';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { RolesGuard } from './guards/roles.guard';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwtSecret', 'dev-secret-key-university-event-system'),
+        secret: getRequiredJwtSecret(configService),
         signOptions: {
           expiresIn: configService.get<string>('jwtExpiresIn', '1d'),
         },
