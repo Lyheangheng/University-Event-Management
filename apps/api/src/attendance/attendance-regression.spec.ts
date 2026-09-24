@@ -137,6 +137,19 @@ async function runRegressionTests() {
   }
   console.log('✅ Test 5 Passed: Unauthenticated submission rejected.');
 
+  // Test 6: Production submission with Bearer JWT when studentIdOrParam is also present
+  console.log('Test 6: Production submission with Bearer JWT when studentIdOrParam is also present...');
+  const subResultWithParam = await service.submitAttendance(
+    'valid-session-token-xyz',
+    'student-uuid-123',
+    mockFile,
+    'Feedback',
+    'Bearer valid.jwt.token',
+  );
+  assert.strictEqual(subResultWithParam.message, 'Check-in recorded successfully.');
+  assert.strictEqual(subResultWithParam.studentId, mockStudent.studentId);
+  console.log('✅ Test 6 Passed: Submission with both JWT and student param succeeded in production.');
+
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }
 

@@ -10,7 +10,7 @@ import { StorageModule } from '../storage/storage.module';
     StorageModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwtSecret', 'dev-secret-key-university-event-system'),
+        secret: configService.get<string>('jwtSecret') || configService.get<string>('JWT_SECRET') || 'dev-secret-key-university-event-system',
         signOptions: {
           expiresIn: configService.get<string>('jwtExpiresIn') || '1d',
         },

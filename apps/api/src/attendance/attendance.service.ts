@@ -186,6 +186,12 @@ export class AttendanceService {
   ): Promise<Student> {
     const isDev = (this.configService.get<string>('nodeEnv') || process.env.NODE_ENV || 'development') === 'development';
 
+    const hasAuth = Boolean(authHeader && authHeader.trim());
+    const startsWithBearer = hasAuth ? /^Bearer\s+/i.test(authHeader!) : false;
+    this.logger.log(
+      `[resolveStudent] isDev=${isDev}, hasAuthHeader=${hasAuth}, isBearer=${startsWithBearer}, devParamProvided=${Boolean(studentIdOrParam)}`,
+    );
+
     // 1. Authenticate via Bearer JWT header (Primary Production Transport)
     if (authHeader && authHeader.trim()) {
       const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -197,11 +203,13 @@ export class AttendanceService {
               where: { id: payload.sub },
             });
             if (student) {
+              this.logger.log(`[resolveStudent] JWT verification succeeded for studentId="${student.studentId}".`);
               return student;
             }
+            this.logger.warn(`[resolveStudent] Student record not found for verified JWT sub`);
           }
         } catch (err: any) {
-          this.logger.warn(`JWT verification failed in resolveStudent: ${err?.message}`);
+          this.logger.warn(`[resolveStudent] JWT verification failed: ${err?.message}`);
         }
       }
     }

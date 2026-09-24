@@ -11,7 +11,7 @@ import { LineController } from './line.controller';
     PrismaModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwtSecret'),
+        secret: configService.get<string>('jwtSecret') || configService.get<string>('JWT_SECRET') || 'dev-secret-key-university-event-system',
         signOptions: {
           expiresIn: configService.get<string>('jwtExpiresIn') || '1d',
         },
