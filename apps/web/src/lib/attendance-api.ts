@@ -73,6 +73,24 @@ export interface AttendanceSubmissionResult {
 }
 
 /**
+ * Helper to construct authentication headers (Authorization Bearer JWT & x-dev-student-id)
+ */
+function getAuthHeader(devStudentId?: string, studentToken?: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+
+  const token = studentToken || (typeof window !== 'undefined' ? localStorage.getItem('student_access_token') : null);
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (devStudentId) {
+    headers['x-dev-student-id'] = devStudentId;
+  }
+
+  return headers;
+}
+
+/**
  * Fetch current active session for an event (used by Projector display)
  */
 export async function fetchActiveSession(eventId: string): Promise<ActiveSessionData | null> {
@@ -95,11 +113,12 @@ export async function fetchActiveSession(eventId: string): Promise<ActiveSession
 /**
  * Fetch and validate attendance session details by token (used by Student Scan entry page)
  */
-export async function fetchSessionByToken(token: string, devStudentId?: string): Promise<SessionValidationData> {
-  const headers: Record<string, string> = {};
-  if (devStudentId) {
-    headers['x-dev-student-id'] = devStudentId;
-  }
+export async function fetchSessionByToken(
+  token: string,
+  devStudentId?: string,
+  studentToken?: string,
+): Promise<SessionValidationData> {
+  const headers = getAuthHeader(devStudentId, studentToken);
 
   const res = await fetch(`${API_BASE_URL}/api/attendance/sessions/${token}`, {
     headers,
@@ -130,11 +149,11 @@ export async function fetchSessionByToken(token: string, devStudentId?: string):
 /**
  * Fetch authenticated student profile and dev test student list
  */
-export async function fetchStudentProfile(devStudentId?: string): Promise<StudentProfileResult> {
-  const headers: Record<string, string> = {};
-  if (devStudentId) {
-    headers['x-dev-student-id'] = devStudentId;
-  }
+export async function fetchStudentProfile(
+  devStudentId?: string,
+  studentToken?: string,
+): Promise<StudentProfileResult> {
+  const headers = getAuthHeader(devStudentId, studentToken);
 
   const res = await fetch(`${API_BASE_URL}/api/attendance/me`, {
     headers,
@@ -161,6 +180,7 @@ export async function submitAttendance(
   photo: File,
   feedback?: string,
   devStudentId?: string,
+  studentToken?: string,
 ): Promise<AttendanceSubmissionResult> {
   const formData = new FormData();
   formData.append('photo', photo);
@@ -168,10 +188,7 @@ export async function submitAttendance(
     formData.append('feedback', feedback.trim());
   }
 
-  const headers: Record<string, string> = {};
-  if (devStudentId) {
-    headers['x-dev-student-id'] = devStudentId;
-  }
+  const headers = getAuthHeader(devStudentId, studentToken);
 
   const res = await fetch(`${API_BASE_URL}/api/attendance/sessions/${token}/submit`, {
     method: 'POST',
@@ -286,11 +303,13 @@ export async function fetchAdminEventAttendance(eventId: string, token: string):
 }
 
 export interface LineVerifyResponse {
+  status?: 'LINKED' | 'UNLINKED';
   linked: boolean;
   student: StudentProfile | null;
   lineUserId: string;
   displayName?: string;
   pictureUrl?: string;
+  accessToken?: string | null;
 }
 
 /**
@@ -309,7 +328,16 @@ export async function verifyLineToken(idToken: string): Promise<LineVerifyRespon
   }
 
   if (json && json.success && json.data) {
-    return json.data;
+    const data = json.data;
+    return {
+      status: data.status,
+      linked: data.status === 'LINKED' || Boolean(data.student),
+      student: data.student || null,
+      lineUserId: data.lineUserId,
+      displayName: data.lineDisplayName || data.displayName,
+      pictureUrl: data.linePictureUrl || data.pictureUrl,
+      accessToken: data.accessToken || null,
+    };
   }
 
   throw new Error('Invalid response structure from LINE token verification endpoint');
@@ -318,7 +346,10 @@ export async function verifyLineToken(idToken: string): Promise<LineVerifyRespon
 /**
  * Link LINE account with Student ID using verified LIFF ID token
  */
-export async function linkStudentAccount(idToken: string, studentId: string): Promise<{ linked: boolean; student: StudentProfile }> {
+export async function linkStudentAccount(
+  idToken: string,
+  studentId: string,
+): Promise<{ linked: boolean; student: StudentProfile; accessToken?: string | null }> {
   const res = await fetch(`${API_BASE_URL}/api/line/link-student`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -331,9 +362,13 @@ export async function linkStudentAccount(idToken: string, studentId: string): Pr
   }
 
   if (json && json.success && json.data) {
-    return json.data;
+    const data = json.data;
+    return {
+      linked: data.status === 'LINKED' || Boolean(data.student),
+      student: data.student,
+      accessToken: data.accessToken || null,
+    };
   }
 
   throw new Error('Invalid response structure from LINE student linking endpoint');
 }
-

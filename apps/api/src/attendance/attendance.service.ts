@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service';
@@ -26,8 +27,8 @@ export class AttendanceService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly storageService: StorageService,
+    private readonly jwtService: JwtService,
   ) {}
-
 
   /**
    * Generates or retrieves the active attendance session for an event.
@@ -98,7 +99,7 @@ export class AttendanceService {
   /**
    * Retrieves and validates an attendance session by token, including existing attendance status for the student.
    */
-  async getSessionByToken(token: string, studentIdOrParam?: string) {
+  async getSessionByToken(token: string, studentIdOrParam?: string, authHeader?: string) {
     let session = null;
     try {
       session = await this.prisma.attendanceSession.findUnique({
@@ -128,7 +129,6 @@ export class AttendanceService {
       throw new NotFoundException('Attendance session not found or invalid token');
     }
 
-
     const serverNow = new Date();
 
     if (serverNow < session.startTime || serverNow >= session.endTime) {
@@ -137,7 +137,7 @@ export class AttendanceService {
 
     let existingAttendance = null;
     try {
-      const student = await this.resolveStudent(studentIdOrParam);
+      const student = await this.resolveStudent(studentIdOrParam, authHeader);
       if (student) {
         const att = await this.prisma.attendance.findUnique({
           where: {
@@ -177,11 +177,36 @@ export class AttendanceService {
   }
 
   /**
-   * Resolves student identity from verified LINE user ID, authenticated request, or dev student ID fallback
+   * Resolves student identity from authenticated JWT token, verified LINE user ID, or dev student ID fallback.
    */
-  async resolveStudent(studentIdOrParam?: string, lineUserId?: string): Promise<Student> {
+  async resolveStudent(
+    studentIdOrParam?: string,
+    authHeader?: string,
+    lineUserId?: string,
+  ): Promise<Student> {
     const isDev = (this.configService.get<string>('nodeEnv') || process.env.NODE_ENV || 'development') === 'development';
 
+    // 1. Authenticate via Bearer JWT header (Primary Production Transport)
+    if (authHeader && authHeader.trim()) {
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      if (token) {
+        try {
+          const payload = this.jwtService.verify(token);
+          if (payload && payload.sub) {
+            const student = await this.prisma.student.findUnique({
+              where: { id: payload.sub },
+            });
+            if (student) {
+              return student;
+            }
+          }
+        } catch (err: any) {
+          this.logger.warn(`JWT verification failed in resolveStudent: ${err?.message}`);
+        }
+      }
+    }
+
+    // 2. Authenticate via verified lineUserId
     if (lineUserId) {
       const studentByLine = await this.prisma.student.findUnique({
         where: { lineUserId },
@@ -191,7 +216,7 @@ export class AttendanceService {
       }
     }
 
-    // Development header / param lookup: strictly permitted ONLY in development mode
+    // 3. Development header / param lookup: strictly permitted ONLY in development mode
     if (studentIdOrParam && isDev) {
       const student = await this.prisma.student.findFirst({
         where: {
@@ -204,7 +229,7 @@ export class AttendanceService {
       }
     }
 
-    // Fallback default student lookup: strictly permitted ONLY in development mode
+    // 4. Fallback default student lookup: strictly permitted ONLY in development mode
     if (isDev) {
       const defaultStudent = await this.prisma.student.findFirst();
       if (defaultStudent) {
@@ -215,12 +240,11 @@ export class AttendanceService {
     throw new UnauthorizedException('Student authentication required in production environment');
   }
 
-
   /**
    * Fetches authenticated student profile and available dev test students
    */
-  async getStudentProfile(studentIdOrParam?: string) {
-    const currentStudent = await this.resolveStudent(studentIdOrParam);
+  async getStudentProfile(studentIdOrParam?: string, authHeader?: string) {
+    const currentStudent = await this.resolveStudent(studentIdOrParam, authHeader);
     const availableStudents = await this.prisma.student.findMany({
       select: {
         id: true,
@@ -257,7 +281,6 @@ export class AttendanceService {
     return result.url;
   }
 
-
   /**
    * Submits student attendance for an active session
    */
@@ -266,6 +289,7 @@ export class AttendanceService {
     studentIdOrParam: string | undefined,
     file: UploadedProofFile,
     feedback?: string,
+    authHeader?: string,
   ) {
     // 1. Validate session token and active server time
     let session = null;
@@ -288,8 +312,8 @@ export class AttendanceService {
       throw new BadRequestException('Attendance session has expired or is not yet active');
     }
 
-    // 2. Resolve authoritative student identity
-    const student = await this.resolveStudent(studentIdOrParam);
+    // 2. Resolve authoritative student identity from JWT / dev header
+    const student = await this.resolveStudent(studentIdOrParam, authHeader);
 
     // 3. Process & save photo proof file
     const proofUrl = await this.saveProofFile(file);

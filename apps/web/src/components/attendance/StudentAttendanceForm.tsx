@@ -12,7 +12,7 @@ import {
   verifyLineToken,
   linkStudentAccount,
 } from '../../lib/attendance-api';
-import { initLiff, triggerLiffLogin, LiffState } from '../../lib/liff';
+import { initLiff, LiffState } from '../../lib/liff';
 import { formatEventDate, formatTimeRange } from '../../lib/formatters';
 
 interface StudentAttendanceFormProps {
@@ -21,7 +21,7 @@ interface StudentAttendanceFormProps {
 
 export function StudentAttendanceForm({ sessionData: initialSessionData }: StudentAttendanceFormProps) {
   const [sessionData, setSessionData] = useState<SessionValidationData>(initialSessionData);
-  const { sessionType, event, token, startsAt, endsAt } = sessionData;
+  const { sessionType, event, token } = sessionData;
   const isCheckIn = sessionType === 'CHECK_IN';
 
   // Profile state
@@ -30,13 +30,21 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   const [selectedDevStudentId, setSelectedDevStudentId] = useState<string>('');
   const [profileLoading, setProfileLoading] = useState<boolean>(true);
 
+  // Student Access Token state (App JWT)
+  const [studentAccessToken, setStudentAccessToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('student_access_token');
+    }
+    return null;
+  });
+
   // LINE & LIFF Integration state
   const [liffInfo, setLiffInfo] = useState<LiffState | null>(null);
   const [lineLinked, setLineLinked] = useState<boolean>(false);
   const [lineDisplayName, setLineDisplayName] = useState<string | null>(null);
   const [linkingLine, setLinkingLine] = useState<boolean>(false);
   const [lineNotice, setLineNotice] = useState<string | null>(null);
-
+  const [linkInputStudentId, setLinkInputStudentId] = useState<string>('');
 
   // Form input states
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -49,13 +57,14 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   const [submissionResult, setSubmissionResult] = useState<AttendanceSubmissionResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Load student profile & refresh session data for dev student switcher
-  const loadProfileAndSession = useCallback(async (devStudentId?: string) => {
+  // Load student profile & refresh session data for student
+  const loadProfileAndSession = useCallback(async (devStudentId?: string, tok?: string) => {
     setProfileLoading(true);
     try {
+      const activeToken = tok || studentAccessToken || undefined;
       const [profileRes, refreshedSession] = await Promise.all([
-        fetchStudentProfile(devStudentId),
-        fetchSessionByToken(token, devStudentId).catch(() => null),
+        fetchStudentProfile(devStudentId, activeToken),
+        fetchSessionByToken(token, devStudentId, activeToken).catch(() => null),
       ]);
       setProfile(profileRes.currentStudent);
       setAvailableStudents(profileRes.availableStudents);
@@ -70,11 +79,11 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
     } finally {
       setProfileLoading(false);
     }
-  }, [token, selectedDevStudentId]);
+  }, [token, selectedDevStudentId, studentAccessToken]);
 
   useEffect(() => {
-    loadProfileAndSession(selectedDevStudentId);
-  }, [selectedDevStudentId, loadProfileAndSession]);
+    loadProfileAndSession(selectedDevStudentId, studentAccessToken || undefined);
+  }, [selectedDevStudentId, studentAccessToken, loadProfileAndSession]);
 
   // Initialize LIFF and verify LINE Token if present
   useEffect(() => {
@@ -85,6 +94,10 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
         try {
           const verified = await verifyLineToken(state.idToken);
           setLineLinked(verified.linked);
+          if (verified.accessToken) {
+            localStorage.setItem('student_access_token', verified.accessToken);
+            setStudentAccessToken(verified.accessToken);
+          }
           if (verified.displayName) {
             setLineDisplayName(verified.displayName);
           }
@@ -99,15 +112,24 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
     checkLiff();
   }, []);
 
-  const handleLinkLineAccount = async () => {
-    if (!liffInfo?.idToken || !profile?.studentId) return;
+  const handleLinkLineAccount = async (targetStudentId?: string) => {
+    const studentIdToLink = targetStudentId || linkInputStudentId || profile?.studentId;
+    if (!liffInfo?.idToken || !studentIdToLink) return;
+
     setLinkingLine(true);
     setLineNotice(null);
     try {
-      const result = await linkStudentAccount(liffInfo.idToken, profile.studentId);
+      const result = await linkStudentAccount(liffInfo.idToken, studentIdToLink);
       if (result.linked) {
         setLineLinked(true);
-        setLineNotice('LINE account linked successfully! You will now receive event notifications on LINE.');
+        if (result.accessToken) {
+          localStorage.setItem('student_access_token', result.accessToken);
+          setStudentAccessToken(result.accessToken);
+        }
+        if (result.student) {
+          setProfile(result.student);
+        }
+        setLineNotice('LINE account linked successfully! Student identity verified for attendance.');
       }
     } catch (err: any) {
       setLineNotice(err.message || 'Failed to link LINE account.');
@@ -115,7 +137,6 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
       setLinkingLine(false);
     }
   };
-
 
   // Handle Photo selection
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -167,6 +188,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
         photoFile,
         feedback,
         selectedDevStudentId || profile?.id,
+        studentAccessToken || undefined,
       );
       setSubmissionResult(result);
     } catch (err: any) {
@@ -249,7 +271,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
     );
   }
 
-  // State 4: Already COMPLETED Attendance State
+  // Already COMPLETED Attendance State
   if (hasCompletedAttendance) {
     return (
       <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none">
@@ -312,7 +334,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
     );
   }
 
-  // State 2: Check-In session when ALREADY checked in (Waiting for Checkout)
+  // Check-In session when ALREADY checked in (Waiting for Checkout)
   if (isCheckIn && hasCheckedIn) {
     return (
       <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none">
@@ -368,16 +390,16 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
     );
   }
 
-  // State 3 Warning: Checkout session accessed without prior Check-In
+  // Warning: Checkout session accessed without prior Check-In
   const missingCheckInForCheckout = !isCheckIn && !hasCheckedIn;
 
-  const formattedStartTime = new Date(startsAt).toLocaleTimeString('en-GB', {
+  const formattedStartTime = new Date(sessionData.startTime).toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   });
 
-  const formattedEndTime = new Date(endsAt).toLocaleTimeString('en-GB', {
+  const formattedEndTime = new Date(sessionData.endTime).toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -432,6 +454,39 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
           <p className="text-slate-300">
             You must check in during the check-in window before submitting check-out. Direct check-out without prior check-in is not permitted.
           </p>
+        </div>
+      )}
+
+      {/* Unlinked LINE Account Warning Banner */}
+      {liffInfo?.idToken && !lineLinked && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+          <div className="flex items-start gap-2.5">
+            <span className="text-amber-400 text-lg font-bold">⚠️</span>
+            <div className="space-y-1 text-xs">
+              <span className="font-bold text-amber-300 block">LINE Account Unlinked</span>
+              <p className="text-slate-300 leading-relaxed">
+                Your LINE account ({lineDisplayName || 'LINE User'}) is not yet linked to a university student record. Please enter your Student ID below to link your account before submitting attendance.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="text"
+              value={linkInputStudentId}
+              onChange={(e) => setLinkInputStudentId(e.target.value)}
+              placeholder="Enter Student ID (e.g. STD-66001)"
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500"
+            />
+            <button
+              type="button"
+              onClick={() => handleLinkLineAccount()}
+              disabled={linkingLine || !linkInputStudentId.trim()}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all disabled:opacity-50 shrink-0"
+            >
+              {linkingLine ? 'Linking...' : 'Link Account'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -512,7 +567,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
                   {!lineLinked && (
                     <button
                       type="button"
-                      onClick={handleLinkLineAccount}
+                      onClick={() => handleLinkLineAccount()}
                       disabled={linkingLine}
                       className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md disabled:opacity-50"
                     >
@@ -530,7 +585,6 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
             </div>
           )}
         </div>
-
 
         {/* SECTION 2: Photo Proof Upload */}
         <div className="space-y-3">

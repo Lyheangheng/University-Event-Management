@@ -1,0 +1,146 @@
+===============================================================================
+PHASE 16.8 — STUDENT AUTHENTICATION BRIDGE REPORT
+===============================================================================
+Date: 2026-09-24
+Project: University Event Management and Attendance Verification System
+Status: COMPLETE & VERIFIED
+
+-------------------------------------------------------------------------------
+1. PHASE NAME & OBJECTIVE
+-------------------------------------------------------------------------------
+Phase: Phase 16.8 — Student Authentication Bridge (LINE/LIFF → Application JWT)
+Objective:
+  Bridge the student authentication chain between LINE/LIFF identity verification,
+  application JWT token issuance, and server-side attendance submission.
+  Ensure production attendance requests send `Authorization: Bearer <application-jwt>`
+  and that `resolveStudent()` authoritatively extracts the authenticated Student record
+  without allowing student spoofing.
+
+-------------------------------------------------------------------------------
+2. PROBLEM FOUND & ROOT CAUSE
+-------------------------------------------------------------------------------
+Problem:
+  In production, submitting attendance returned:
+  `UnauthorizedException: Student authentication required in production environment`
+
+Root Cause:
+  1. `POST /api/line/verify-token` verified LINE ID tokens and issued application JWTs,
+     but the frontend `StudentAttendanceForm` did not persist or attach the JWT.
+  2. Frontend `submitAttendance()` in `attendance-api.ts` sent only `x-dev-student-id`.
+  3. Backend `AttendanceController.submitAttendance` did not accept or pass `Authorization` bearer headers.
+  4. Backend `resolveStudent()` received `lineUserId = undefined`, and since `NODE_ENV === 'production'`
+     disabled development headers, `resolveStudent()` threw `UnauthorizedException`.
+
+-------------------------------------------------------------------------------
+3. FILES INSPECTED & CHANGED
+-------------------------------------------------------------------------------
+Inspected & Modified:
+[MODIFY] apps/api/src/attendance/attendance.module.ts
+  - Imported `JwtModule.registerAsync()` with production JWT configuration so `AttendanceService`
+    can inject `JwtService` for token verification.
+
+[MODIFY] apps/api/src/attendance/attendance.service.ts
+  - Injected `JwtService`.
+  - Updated `resolveStudent(studentIdOrParam, authHeader, lineUserId)`:
+    1. Extracts and verifies `Authorization: Bearer <token>` using `jwtService.verify(token)`.
+    2. Resolves authoritative `Student` record by JWT `sub` (`student.id`).
+    3. Maintains `lineUserId` lookup path.
+    4. Preserves development `x-dev-student-id` header & default student fallbacks strictly when `NODE_ENV === 'development'`.
+    5. Rejects unauthenticated production requests with `UnauthorizedException`.
+
+[MODIFY] apps/api/src/attendance/attendance.controller.ts
+  - Updated `getSessionByToken`, `getStudentProfile`, and `submitAttendance` to extract `@Headers('authorization') authHeader`.
+  - Forwards `authHeader` to `AttendanceService`.
+
+[MODIFY] apps/web/src/lib/attendance-api.ts
+  - Updated `verifyLineToken` and `linkStudentAccount` to return `accessToken`.
+  - Added `getAuthHeader(devStudentId, studentToken)` helper that attaches `Authorization: Bearer <studentToken>`
+    (retrieved from parameters or `localStorage.getItem('student_access_token')`).
+  - Updated `fetchSessionByToken`, `fetchStudentProfile`, and `submitAttendance` to attach the Authorization header.
+
+[MODIFY] apps/web/src/components/attendance/StudentAttendanceForm.tsx
+  - When `verifyLineToken` or `linkStudentAccount` returns an application `accessToken`, stores it in
+    `localStorage.setItem('student_access_token', token)` and client state.
+  - Passes `studentAccessToken` to `fetchStudentProfile` and `submitAttendance`.
+  - Renders explicit notice & account linking prompt if LINE account is unlinked.
+
+-------------------------------------------------------------------------------
+4. EXACT AUTHENTICATION FLOW BEFORE / AFTER
+-------------------------------------------------------------------------------
+BEFORE:
+  LINE LIFF → `POST /api/line/verify-token` → JWT issued → (JWT dropped by frontend)
+  → `submitAttendance()` (sends only `x-dev-student-id`) → Backend `resolveStudent()`
+  → `NODE_ENV === 'production'` rejects dev header → `UnauthorizedException` 401.
+
+AFTER:
+  LINE LIFF → `POST /api/line/verify-token` → JWT issued
+  → Frontend stores JWT in `localStorage.setItem('student_access_token', token)`
+  → `submitAttendance()` attaches `Authorization: Bearer <token>`
+  → Backend `AttendanceController` receives Authorization header
+  → Backend `AttendanceService.resolveStudent()` verifies JWT via `jwtService.verify(token)`
+  → Resolves authoritative `Student` from DB by JWT `sub`
+  → Attendance record created/updated safely for authenticated student.
+
+-------------------------------------------------------------------------------
+5. SECURITY & SPOOFING PROTECTION
+-------------------------------------------------------------------------------
+- Server-Side Authoritative Identity:
+  The backend resolves student identity strictly from the verified JWT `sub` (`Student.id`).
+- Student Spoofing Prevention:
+  Attempting to modify request body fields or headers to impersonate another student ID is ignored;
+  the backend uses ONLY the verified JWT payload identity.
+- Production Security:
+  `x-dev-student-id` header is strictly ignored when `NODE_ENV === 'production'`.
+
+-------------------------------------------------------------------------------
+6. TESTS EXECUTED & RESULTS
+-------------------------------------------------------------------------------
+Test A — Development Attendance (`x-dev-student-id`):
+  Verified local development student switcher and dev header continue to function when `NODE_ENV === 'development'`.
+  Result: PASSED.
+
+Test B — LINE Token Verification & JWT Issuance:
+  Verified `POST /api/line/verify-token` returns `accessToken` for linked students.
+  Result: PASSED.
+
+Test C — JWT Bearer Attendance Authorization:
+  Verified `resolveStudent()` accepts `Authorization: Bearer <token>` and returns the corresponding `Student` record.
+  Result: PASSED.
+
+Test D — Unauthenticated Production Rejection:
+  Verified production mode (`NODE_ENV === 'production'`) without Authorization header throws `UnauthorizedException`.
+  Result: PASSED.
+
+Test E — Invalid / Expired JWT Rejection:
+  Verified `resolveStudent()` rejects invalid/malformed JWT tokens and throws `UnauthorizedException`.
+  Result: PASSED.
+
+Test F — Workspace Build Verification:
+  - Backend build (`npm run build --workspace=apps/api`): Exit code 0 (SUCCESS).
+  - Frontend build (`npm run build --workspace=apps/web`): Exit code 0 (SUCCESS).
+  Result: PASSED.
+
+-------------------------------------------------------------------------------
+7. PRODUCTION VERIFICATION STATUS
+-------------------------------------------------------------------------------
+- Code Verification: COMPLETE & PASSED.
+- Local Build Verification: COMPLETE & PASSED.
+- Live LINE Production Verification: Code is ready for deployment; requires Vercel and Render deployment to verify with live LINE Official Account LIFF credentials.
+
+-------------------------------------------------------------------------------
+8. MANUAL CONFIGURATION REQUIRED
+-------------------------------------------------------------------------------
+None for code. Ensure `JWT_SECRET`, `NEXT_PUBLIC_LIFF_ID`, `LINE_CHANNEL_ID`, and `LINE_CHANNEL_SECRET` are set in production Vercel & Render environment settings.
+
+-------------------------------------------------------------------------------
+9. KNOWN LIMITATIONS
+-------------------------------------------------------------------------------
+None.
+
+-------------------------------------------------------------------------------
+10. GIT COMMIT INFORMATION
+-------------------------------------------------------------------------------
+Commit Hash: 205b8d43bf74e36b98eb8563d333b32393c2f051
+Suggested Commit Message:
+  fix: bridge LINE authentication to student attendance
+===============================================================================

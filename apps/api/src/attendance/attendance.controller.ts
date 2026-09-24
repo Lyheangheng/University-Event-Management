@@ -58,9 +58,10 @@ export class AttendanceController {
   @Get('sessions/:token')
   async getSessionByToken(
     @Param('token') token: string,
+    @Headers('authorization') authHeader?: string,
     @Headers('x-dev-student-id') devStudentId?: string,
   ) {
-    const sessionData = await this.attendanceService.getSessionByToken(token, devStudentId);
+    const sessionData = await this.attendanceService.getSessionByToken(token, devStudentId, authHeader);
     const frontendBaseUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const attendanceUrl = `${frontendBaseUrl}/attendance/session/${sessionData.token}`;
@@ -78,8 +79,11 @@ export class AttendanceController {
    * Retrieve authenticated student profile for auto-filling the attendance form.
    */
   @Get('me')
-  async getStudentProfile(@Headers('x-dev-student-id') devStudentId?: string) {
-    return this.attendanceService.getStudentProfile(devStudentId);
+  async getStudentProfile(
+    @Headers('authorization') authHeader?: string,
+    @Headers('x-dev-student-id') devStudentId?: string,
+  ) {
+    return this.attendanceService.getStudentProfile(devStudentId, authHeader);
   }
 
   /**
@@ -92,9 +96,10 @@ export class AttendanceController {
     @Param('token') token: string,
     @UploadedFile() file: UploadedProofFile,
     @Body('feedback') feedback?: string,
+    @Headers('authorization') authHeader?: string,
     @Headers('x-dev-student-id') devStudentId?: string,
   ) {
-    return this.attendanceService.submitAttendance(token, devStudentId, file, feedback);
+    return this.attendanceService.submitAttendance(token, devStudentId, file, feedback, authHeader);
   }
 
   /**
@@ -108,4 +113,3 @@ export class AttendanceController {
     return res.sendFile(filePath);
   }
 }
-
