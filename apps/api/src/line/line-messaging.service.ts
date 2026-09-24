@@ -25,7 +25,10 @@ export class LineMessagingService {
    * Helper to send push message via LINE Messaging API to a specific linked LINE user ID
    */
   async sendPushMessage(toLineUserId: string, messages: any[]): Promise<boolean> {
-    const accessToken = this.configService.get<string>('line.channelAccessToken');
+    const accessToken =
+      this.configService.get<string>('line.channelAccessToken') ||
+      this.configService.get<string>('LINE_CHANNEL_ACCESS_TOKEN') ||
+      process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
     if (!accessToken || !accessToken.trim()) {
       this.logger.debug(
@@ -69,6 +72,7 @@ export class LineMessagingService {
   async notifyEventAnnouncement(event: EventNotificationPayload): Promise<number> {
     const notificationKey = `event_announcement_${event.id}`;
     if (this.sentNotifications.has(notificationKey)) {
+      this.logger.log(`Suppressed duplicate event announcement notification for event '${event.id}'.`);
       return 0; // Idempotency check: already notified
     }
     this.sentNotifications.add(notificationKey);
@@ -115,8 +119,9 @@ export class LineMessagingService {
    * Send LINE notification to all linked students when check-in window opens for an event
    */
   async notifyCheckInOpened(event: EventNotificationPayload, sessionToken: string): Promise<number> {
-    const notificationKey = `check_in_open_${event.id}_${sessionToken}`;
+    const notificationKey = `check_in_open_${event.id}`;
     if (this.sentNotifications.has(notificationKey)) {
+      this.logger.log(`Suppressed duplicate CHECK_IN notification for event '${event.id}'.`);
       return 0; // Idempotency check: already notified
     }
     this.sentNotifications.add(notificationKey);
@@ -154,8 +159,9 @@ export class LineMessagingService {
    * Send LINE notification to all linked students when check-out window opens for an event
    */
   async notifyCheckOutOpened(event: EventNotificationPayload, sessionToken: string): Promise<number> {
-    const notificationKey = `check_out_open_${event.id}_${sessionToken}`;
+    const notificationKey = `check_out_open_${event.id}`;
     if (this.sentNotifications.has(notificationKey)) {
+      this.logger.log(`Suppressed duplicate CHECK_OUT notification for event '${event.id}'.`);
       return 0; // Idempotency check: already notified
     }
     this.sentNotifications.add(notificationKey);
@@ -189,3 +195,4 @@ export class LineMessagingService {
     return deliveredCount;
   }
 }
+

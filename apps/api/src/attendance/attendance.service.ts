@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service';
 import { AttendanceSessionType, AttendanceStatus, Student } from '@prisma/client';
+import { LineMessagingService } from '../line/line-messaging.service';
 import * as crypto from 'crypto';
 
 export interface UploadedProofFile {
@@ -28,6 +29,7 @@ export class AttendanceService {
     private readonly configService: ConfigService,
     private readonly storageService: StorageService,
     private readonly jwtService: JwtService,
+    private readonly lineMessagingService: LineMessagingService,
   ) {}
 
   /**
@@ -93,8 +95,22 @@ export class AttendanceService {
       },
     });
 
+    // Trigger LINE Official Account notification for new active session
+    try {
+      if (newSession.sessionType === AttendanceSessionType.CHECK_IN) {
+        await this.lineMessagingService.notifyCheckInOpened(event, newSession.token);
+      } else if (newSession.sessionType === AttendanceSessionType.CHECK_OUT) {
+        await this.lineMessagingService.notifyCheckOutOpened(event, newSession.token);
+      }
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to deliver LINE session notification for session '${newSession.id}': ${err?.message || err}`,
+      );
+    }
+
     return newSession;
   }
+
 
   /**
    * Retrieves and validates an attendance session by token, including existing attendance status for the student.

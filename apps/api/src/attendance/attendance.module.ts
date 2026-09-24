@@ -5,12 +5,14 @@ import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
 import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
+import { LineModule } from '../line/line.module';
 import { getRequiredJwtSecret } from '../config/jwt-secret.helper';
 
 @Module({
   imports: [
     StorageModule,
     AuthModule,
+    LineModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         secret: getRequiredJwtSecret(configService),
@@ -26,4 +28,5 @@ import { getRequiredJwtSecret } from '../config/jwt-secret.helper';
   exports: [AttendanceService],
 })
 export class AttendanceModule {}
+
 

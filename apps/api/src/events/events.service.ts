@@ -8,12 +8,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Event } from '@prisma/client';
+import { LineMessagingService } from '../line/line-messaging.service';
 
 @Injectable()
 export class EventsService {
   private readonly logger = new Logger(EventsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly lineMessagingService: LineMessagingService,
+  ) {}
 
   /**
    * Create a new university event
@@ -55,8 +59,19 @@ export class EventsService {
     });
 
     this.logger.log(`Admin '${adminId}' created event '${event.title}' (ID: ${event.id})`);
+
+    // Trigger LINE Official Account event announcement notification asynchronously
+    try {
+      await this.lineMessagingService.notifyEventAnnouncement(event);
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to deliver LINE event announcement notification for event '${event.id}': ${err?.message || err}`,
+      );
+    }
+
     return event;
   }
+
 
   /**
    * Retrieve all university events

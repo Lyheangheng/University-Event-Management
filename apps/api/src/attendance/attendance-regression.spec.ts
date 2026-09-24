@@ -72,11 +72,19 @@ async function runRegressionTests() {
     sign: () => 'valid.jwt.token',
   };
 
+  const mockLineMessaging: any = {
+    sendPushMessage: async () => true,
+    notifyEventAnnouncement: async () => 0,
+    notifyCheckInOpened: async () => 0,
+    notifyCheckOutOpened: async () => 0,
+  };
+
   const service = new AttendanceService(
     mockPrisma,
     mockConfig,
     mockStorage,
     mockJwt,
+    mockLineMessaging,
   );
 
   // Test 1: Authenticated Production Student Resolution
@@ -312,6 +320,160 @@ async function runRegressionTests() {
   }
   console.log('✅ Test 10 Passed: extractAndSanitizeFilename security validations verified.');
 
+  // Test 11 (Phase 16.17): EventsService createEvent triggers LineMessagingService announcement
+  console.log('Test 11: EventsService createEvent triggers LineMessagingService announcement...');
+  const { EventsService } = await import('../events/events.service');
+  let announcementCalledWith: any = null;
+  const mockLineMessagingService: any = {
+    notifyEventAnnouncement: async (event: any) => {
+      announcementCalledWith = event;
+      return 1;
+    },
+    notifyCheckInOpened: async (event: any, token: string) => 1,
+    notifyCheckOutOpened: async (event: any, token: string) => 1,
+  };
+  const mockPrismaEvents: any = {
+    event: {
+      create: async ({ data }: any) => ({
+        id: 'event-new-123',
+        ...data,
+      }),
+    },
+  };
+  const eventsService = new EventsService(mockPrismaEvents, mockLineMessagingService);
+  const createdEvent = await eventsService.createEvent(
+    {
+      title: 'Annual Tech Summit',
+      description: 'University tech summit',
+      date: new Date().toISOString(),
+      startTime: new Date().toISOString(),
+      endTime: new Date(Date.now() + 3600000).toISOString(),
+      location: 'Grand Hall',
+      targetGroup: 'All Students',
+    },
+    'admin-123',
+  );
+  assert.strictEqual(createdEvent.title, 'Annual Tech Summit');
+  assert.strictEqual(announcementCalledWith.id, 'event-new-123');
+  console.log('✅ Test 11 Passed: EventsService createEvent successfully triggered LINE announcement.');
+
+  // Test 12 (Phase 16.17): EventsService createEvent succeeds even if LINE push throws an error
+  console.log('Test 12: EventsService createEvent succeeds when LINE push fails...');
+  const mockFailingLineService: any = {
+    notifyEventAnnouncement: async () => {
+      throw new Error('LINE API 500 Internal Error');
+    },
+  };
+  const eventsServiceFail = new EventsService(mockPrismaEvents, mockFailingLineService);
+  const createdEventFail = await eventsServiceFail.createEvent(
+    {
+      title: 'Resilient Event',
+      description: 'Test resilience',
+      date: new Date().toISOString(),
+      startTime: new Date().toISOString(),
+      endTime: new Date(Date.now() + 3600000).toISOString(),
+      location: 'Room 101',
+      targetGroup: 'All',
+    },
+    'admin-123',
+  );
+  assert.strictEqual(createdEventFail.title, 'Resilient Event');
+  console.log('✅ Test 12 Passed: Event creation succeeded despite LINE notification error.');
+
+  // Test 13 (Phase 16.17): AttendanceService getActiveSession triggers check-in and check-out notifications
+  console.log('Test 13: AttendanceService getActiveSession triggers check-in & check-out notifications...');
+  let checkInOpenedToken: string | null = null;
+  let checkOutOpenedToken: string | null = null;
+  const mockLineSessionNotifier: any = {
+    notifyCheckInOpened: async (event: any, token: string) => {
+      checkInOpenedToken = token;
+      return 1;
+    },
+    notifyCheckOutOpened: async (event: any, token: string) => {
+      checkOutOpenedToken = token;
+      return 1;
+    },
+  };
+  const now = Date.now();
+  const mockCheckInEvent = {
+    id: 'event-ci-1',
+    title: 'Check-In Active Event',
+    startTime: new Date(now - 2 * 60 * 1000),
+    endTime: new Date(now + 120 * 60 * 1000),
+  };
+  const mockCheckOutEvent = {
+    id: 'event-co-1',
+    title: 'Check-Out Active Event',
+    startTime: new Date(now - 120 * 60 * 1000),
+    endTime: new Date(now + 5 * 60 * 1000),
+  };
+  const mockPrismaSessions: any = {
+    event: {
+      findUnique: async ({ where }: any) => {
+        if (where.id === mockCheckInEvent.id) return mockCheckInEvent;
+        if (where.id === mockCheckOutEvent.id) return mockCheckOutEvent;
+        return null;
+      },
+    },
+    attendanceSession: {
+      findFirst: async () => null,
+      create: async ({ data }: any) => ({
+        id: `sess-${data.sessionType}`,
+        ...data,
+      }),
+    },
+  };
+  const attendanceServiceNotifier = new AttendanceService(
+    mockPrismaSessions,
+    mockConfig,
+    mockStorage,
+    mockJwt,
+    mockLineSessionNotifier,
+  );
+  const ciSess = await attendanceServiceNotifier.getActiveSession('event-ci-1');
+  assert(ciSess, 'ciSess must not be null');
+  assert.strictEqual(ciSess.sessionType, 'CHECK_IN');
+  assert.strictEqual(checkInOpenedToken, ciSess.token);
+
+  const coSess = await attendanceServiceNotifier.getActiveSession('event-co-1');
+  assert(coSess, 'coSess must not be null');
+  assert.strictEqual(coSess.sessionType, 'CHECK_OUT');
+  assert.strictEqual(checkOutOpenedToken, coSess.token);
+  console.log('✅ Test 13 Passed: AttendanceService session creation successfully triggered CHECK_IN and CHECK_OUT notifications.');
+
+  // Test 14 (Phase 16.17): Duplicate session lookup does not re-trigger notifications (Idempotency)
+  console.log('Test 14: Duplicate session lookup does not re-trigger notification...');
+  let triggerCount = 0;
+  const mockLineIdempotency: any = {
+    notifyCheckInOpened: async () => {
+      triggerCount++;
+      return 1;
+    },
+  };
+  const mockPrismaExistingSession: any = {
+    event: { findUnique: async () => mockCheckInEvent },
+    attendanceSession: {
+      findFirst: async () => ({
+        id: 'existing-sess-1',
+        eventId: 'event-ci-1',
+        sessionType: 'CHECK_IN',
+        token: 'existing-token-abc',
+        startTime: new Date(now - 5 * 60 * 1000),
+        endTime: new Date(now + 5 * 60 * 1000),
+      }),
+    },
+  };
+  const attendanceServiceExisting = new AttendanceService(
+    mockPrismaExistingSession,
+    mockConfig,
+    mockStorage,
+    mockJwt,
+    mockLineIdempotency,
+  );
+  await attendanceServiceExisting.getActiveSession('event-ci-1');
+  assert.strictEqual(triggerCount, 0, 'Retrieving an existing session should not re-trigger notification');
+  console.log('✅ Test 14 Passed: Existing session retrieval did not re-trigger notifications.');
+
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }
 
@@ -319,4 +481,5 @@ runRegressionTests().catch((err) => {
   console.error('❌ Regression Test Failed:', err);
   process.exit(1);
 });
+
 
