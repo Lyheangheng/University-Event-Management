@@ -1,0 +1,107 @@
+===============================================================================
+PHASE 17.2 — ADMIN UI & UX REDESIGN REPORT
+===============================================================================
+
+Date: 2026-09-26
+Project: University Event Management and Attendance Verification System
+Phase Scope: Admin UI/UX Redesign ONLY
+
+-------------------------------------------------------------------------------
+1. OBJECTIVE & DESIGN DIRECTION
+-------------------------------------------------------------------------------
+Phase 17.2 transformed the Admin area from an AI SaaS dark theme layout to a
+practical, trustworthy, institutional university administration portal.
+
+Core Design Rules Enforced:
+- NO GRADIENTS (No purple-to-blue gradients, no multi-color gradient buttons)
+- NO GLOW & NO GLASSMORPHISM
+- NO DECORATIVE EMOJI FLUFF or AI ART
+- High information density for tables, forms, details, proof viewer, and gallery.
+- Shared design system with Phase 17.1 (Background: #F7F7F5, Surface: #FFFFFF,
+  Primary text: #1F2933, Secondary text: #667085, Borders: #E5E7EB, Primary brand: #8B1E2D).
+
+-------------------------------------------------------------------------------
+2. ADMIN UI AUDIT & PROPOSED SOLUTIONS
+-------------------------------------------------------------------------------
+1. Shared Admin Layout & Persistent Sidebar (NEW AdminLayout):
+   - Problem: Admin pages previously lacked a dedicated sidebar/layout and shared
+     the student top navbar or dark header blocks.
+   - Solution: Created `AdminLayout` component featuring a persistent sidebar on
+     desktop, collapsible navigation drawer on mobile, brand header, active link
+     indicators, and administrator user section.
+
+2. Admin Login Page (`apps/web/src/app/admin/login/page.tsx`):
+   - Problem: Dark theme `bg-slate-950`, dark card, emoji `🔒`, indigo buttons.
+   - Solution: Institutional login portal layout on clean `#F7F7F5` canvas, white surface
+     card, university maroon identity badge, clear labels, and primary login button.
+
+3. Admin Dashboard & Event Directory (`apps/web/src/app/admin/page.tsx`):
+   - Problem: Dark background `bg-slate-950`, floating dark cards, emoji icons (`📅`, `📍`, `✏️`, `📋`, `📺`, `🗑️`).
+   - Solution: Wrapped in AdminLayout. Added real metric summary cards (Total, Upcoming,
+     Ongoing, Ended) and high-density desktop data table (`<table className="w-full text-left text-xs">`)
+     with clear columns and restrained action buttons.
+
+4. Create Event Form (`apps/web/src/app/admin/events/new/page.tsx`):
+   - Problem: Dark theme `bg-slate-950`, dark input fields, emoji clutter.
+   - Solution: Wrapped in AdminLayout. Institutional form layout on white card surface,
+     organized into logical sections ("ข้อมูลกิจกรรม", "รูปภาพกิจกรรม"), clear labels,
+     subtle borders, restrained upload dropzones, and primary action in university maroon.
+
+5. Edit Event Form (`apps/web/src/app/admin/events/[id]/edit/page.tsx`):
+   - Problem: Dark theme `bg-slate-950`, floating cards, emoji fluff.
+   - Solution: Institutional form layout matching Create Event. Banner preview box with
+     "เปลี่ยนภาพแบนเนอร์" & "ลบภาพแบนเนอร์", gallery photo grid with simple "ลบ" action badges.
+
+6. Attendance Management & Proof Viewer (`apps/web/src/app/admin/events/[id]/attendance/page.tsx`):
+   - Problem: Dark theme `bg-slate-950`, dark proof viewer modal.
+   - Solution: High-density summary stats cards, filter bar (ทั้งหมด, สมบูรณ์, ไม่สมบูรณ์),
+     search input, high-density data table, and clean white proof viewer modal with side-by-side
+     Check-In and Check-Out proof photos.
+
+7. Projector Displays (`apps/web/src/app/admin/events/[id]/projector/check-in` & `check-out`):
+   - Problem: Dark background `bg-slate-950`, glowing indicators.
+   - Solution: High-contrast presentation screens with venue display header, live clock,
+     event metadata, status badge, and centered high-contrast QR code display.
+
+-------------------------------------------------------------------------------
+3. COLOR SYSTEM & TYPOGRAPHY
+-------------------------------------------------------------------------------
+- Canvas Background: #F7F7F5
+- Surface / Cards: #FFFFFF
+- Primary Text: #1F2933 (Slate-900)
+- Secondary Text: #667085 (Slate-600)
+- Borders: #E5E7EB (Slate-200)
+- Primary Action: #8B1E2D (University Maroon, `bg-university-700`, `hover:bg-university-800`)
+- Success: Green (Emerald-700 / Emerald-50)
+- Warning: Amber (Amber-700 / Amber-50)
+- Error: Red (Red-700 / Red-50)
+
+-------------------------------------------------------------------------------
+4. FUNCTIONALITY PRESERVATION & SAFETY
+-------------------------------------------------------------------------------
+- Admin login & JWT auth preserved.
+- Event creation, editing, banner upload, gallery upload & deletion preserved.
+- Attendance fetching, filtering, searching & proof image streaming preserved.
+- Projector QR display & session creation preserved.
+- No database schema, API contracts, LINE/LIFF logic, or business logic changed.
+
+-------------------------------------------------------------------------------
+5. VERIFICATION & BUILD RESULTS
+-------------------------------------------------------------------------------
+- NestJS Backend Regression Tests: 18/18 PASSED cleanly.
+- Next.js Web Application Production Build: PASSED successfully.
+
+-------------------------------------------------------------------------------
+6. FILES CHANGED
+-------------------------------------------------------------------------------
+- apps/web/src/components/admin/AdminLayout.tsx (NEW)
+- apps/web/src/app/admin/login/page.tsx
+- apps/web/src/app/admin/page.tsx
+- apps/web/src/app/admin/events/new/page.tsx
+- apps/web/src/app/admin/events/[id]/edit/page.tsx
+- apps/web/src/app/admin/events/[id]/attendance/page.tsx
+- apps/web/src/app/admin/events/[id]/projector/check-in/page.tsx
+- apps/web/src/app/admin/events/[id]/projector/check-out/page.tsx
+- PHASE_17.2_REPORT.txt (NEW)
+
+===============================================================================

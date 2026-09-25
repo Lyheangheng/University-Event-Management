@@ -9,6 +9,7 @@ import {
   fetchAdminEventAttendance,
 } from '../../../../../lib/attendance-api';
 import { formatEventDate, formatTimeRange } from '../../../../../lib/formatters';
+import { AdminLayout } from '../../../../../components/admin/AdminLayout';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -86,7 +87,7 @@ function AuthenticatedProofImage({
 
   if (loading) {
     return (
-      <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 animate-pulse text-xs">
+      <div className="w-full h-48 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 animate-pulse text-xs">
         <span>กำลังโหลดรูปภาพหลักฐาน...</span>
       </div>
     );
@@ -94,15 +95,15 @@ function AuthenticatedProofImage({
 
   if (error || !objectUrl) {
     return (
-      <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
+      <div className="w-full h-48 rounded-lg bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
         <span>ไม่สามารถโหลดรูปภาพหลักฐานได้</span>
-        <span className="text-[10px] text-slate-600">ไม่มีสิทธิ์เข้าถึง หรือไม่พบไฟล์รูปภาพ</span>
+        <span className="text-[10px] text-slate-400">ไม่มีสิทธิ์เข้าถึง หรือไม่พบไฟล์รูปภาพ</span>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-48 rounded-xl border border-slate-800 bg-slate-900 overflow-hidden flex items-center justify-center">
+    <div className="w-full h-48 rounded-lg border border-slate-200 bg-white overflow-hidden flex items-center justify-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={objectUrl} alt={alt} className={className || 'w-full h-full object-cover'} />
     </div>
@@ -167,13 +168,6 @@ export default function AdminEventAttendancePage() {
     }
   }, [token, loadAttendance]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_access_token');
-    setToken(null);
-    setData(null);
-    router.push('/admin/login');
-  };
-
   // Filtered records logic
   const filteredRecords = (data?.records || []).filter((record) => {
     const matchesStatus =
@@ -189,388 +183,336 @@ export default function AdminEventAttendancePage() {
     return matchesStatus && matchesSearch;
   });
 
-  // Helper to format proof image URL securely
-  const getImageUrl = (path?: string | null) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `${API_BASE_URL}${path}`;
-  };
-
-  // Loading Skeleton
-  if (loading && !data) {
+  if (!token || (loading && !data)) {
     return (
-      <div className="w-full max-w-6xl mx-auto px-4 py-8 sm:py-12 space-y-8 animate-pulse select-none">
-        <div className="h-8 bg-slate-800/60 rounded-xl w-1/3" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="h-24 bg-slate-800/60 rounded-2xl" />
-          <div className="h-24 bg-slate-800/60 rounded-2xl" />
-          <div className="h-24 bg-slate-800/60 rounded-2xl" />
-        </div>
-        <div className="h-64 bg-slate-800/40 rounded-3xl" />
+      <div className="min-h-screen bg-[#F7F7F5] flex items-center justify-center p-4 text-slate-600 text-xs font-sans">
+        กำลังโหลดข้อมูลการเข้าร่วมกิจกรรม...
       </div>
     );
   }
 
-  // Event Not Found State
   if (error === 'EVENT_NOT_FOUND') {
     return (
-      <div className="w-full max-w-md mx-auto px-4 py-16 text-center space-y-6 font-sans">
-        <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 text-amber-400 flex items-center justify-center mx-auto text-2xl font-bold">
-          ⚠️
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-black text-slate-100">ไม่พบกิจกรรม</h1>
-          <p className="text-slate-400 text-sm">
-            ไม่พบกิจกรรมที่ต้องการตรวจสอบข้อมูลการเข้าร่วม
-          </p>
-        </div>
-        <Link
-          href="/admin"
-          className="inline-block py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
-        >
-          กลับสู่แผงควบคุมผู้ดูแลระบบ
-        </Link>
-      </div>
-    );
-  }
-
-  // Error State
-  if (error || !data) {
-    return (
-      <div className="w-full max-w-md mx-auto px-4 py-16 text-center space-y-6 font-sans">
-        <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto text-2xl font-bold">
-          ✕
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-black text-slate-100">ไม่สามารถโหลดข้อมูลการเข้าร่วม</h1>
-          <p className="text-slate-400 text-sm">{error || 'เกิดข้อผิดพลาดที่ไม่คาดคิด'}</p>
-        </div>
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={() => token && loadAttendance(token)}
-            className="py-3 px-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-bold text-sm transition-all"
-          >
-            ลองอีกครั้ง
-          </button>
+      <AdminLayout title="ไม่พบกิจกรรม">
+        <div className="max-w-md mx-auto p-8 bg-white border border-slate-200 rounded-xl text-center space-y-4">
+          <h1 className="text-xl font-bold text-slate-900">ไม่พบกิจกรรมที่ต้องการตรวจสอบข้อมูล</h1>
+          <p className="text-xs text-slate-600">กิจกรรมนี้อาจถูกลบออกไปแล้วหรือไม่มีอยู่ในระบบ</p>
           <Link
             href="/admin"
-            className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
+            className="inline-block px-4 py-2 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-semibold"
           >
             กลับสู่แผงควบคุม
           </Link>
         </div>
-      </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <AdminLayout title="เกิดข้อผิดพลาด">
+        <div className="max-w-md mx-auto p-8 bg-white border border-slate-200 rounded-xl text-center space-y-4">
+          <h1 className="text-xl font-bold text-slate-900">ไม่สามารถโหลดข้อมูลการเข้าร่วม</h1>
+          <p className="text-xs text-slate-600">{error || 'เกิดข้อผิดพลาดที่ไม่คาดคิด'}</p>
+          <button
+            onClick={() => token && loadAttendance(token)}
+            className="px-4 py-2 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-semibold"
+          >
+            ลองอีกครั้ง
+          </button>
+        </div>
+      </AdminLayout>
     );
   }
 
   const { event, summary } = data;
 
+  const headerActions = (
+    <>
+      <Link
+        href="/admin"
+        className="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors shadow-sm"
+      >
+        ← แผงควบคุม
+      </Link>
+      <Link
+        href={`/admin/events/${event.id}/projector/check-in`}
+        className="px-3.5 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold transition-colors"
+      >
+        QR เช็กอิน
+      </Link>
+      <Link
+        href={`/admin/events/${event.id}/projector/check-out`}
+        className="px-3.5 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-semibold transition-colors"
+      >
+        QR เช็กเอาต์
+      </Link>
+    </>
+  );
+
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8 sm:py-12 space-y-8 font-sans select-none">
-      {/* Top Navigation & Action Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-black uppercase tracking-widest">
-              ระบบจัดการสำหรับผู้ดูแลระบบ
+    <AdminLayout
+      title={`ข้อมูลการเข้าร่วม: ${event.title}`}
+      subtitle={`${event.location} • ${formatEventDate(event.date)} (${formatTimeRange(event.startTime, event.endTime)})`}
+      actions={headerActions}
+    >
+      <div className="space-y-6">
+        {/* Summary Metrics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-1">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              จำนวนบันทึกทั้งหมด
             </span>
-            <span className="text-xs text-slate-500">• จัดการข้อมูลการเข้าร่วม</span>
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900">{summary.totalRecords}</div>
+            <span className="text-[11px] text-slate-500 block">รายการที่นักศึกษาส่ง</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-100 tracking-tight leading-tight">
-            {event.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
-            {event.location} • {formatEventDate(event.date)} ({formatTimeRange(event.startTime, event.endTime)})
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/admin"
-            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all"
-          >
-            ← แผงควบคุม
-          </Link>
-          <Link
-            href={`/admin/events/${event.id}/projector/check-in`}
-            className="px-4 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 text-xs font-bold transition-all"
-          >
-            หน้าจอ QR เช็กอิน
-          </Link>
-          <Link
-            href={`/admin/events/${event.id}/projector/check-out`}
-            className="px-4 py-2 rounded-xl bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all"
-          >
-            หน้าจอ QR เช็กเอาต์
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold transition-all"
-          >
-            ออกจากระบบ
-          </button>
-        </div>
-      </header>
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-1">
+            <span className="text-xs font-semibold text-emerald-800 uppercase tracking-wider block">
+              สมบูรณ์
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold text-emerald-700">{summary.completedCount}</div>
+            <span className="text-[11px] text-emerald-600 block">เช็กอินและเช็กเอาต์ครบถ้วน</span>
+          </div>
 
-      {/* Summary Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            จำนวนบันทึกทั้งหมด
-          </span>
-          <div className="text-3xl font-black text-slate-100">{summary.totalRecords}</div>
-          <span className="text-[11px] text-slate-500">รายการที่นักศึกษาส่ง</span>
-        </div>
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-1">
+            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider block">
+              ไม่สมบูรณ์
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-700">{summary.incompleteCount}</div>
+            <span className="text-[11px] text-amber-600 block">รอการเช็กเอาต์</span>
+          </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-emerald-500/30 bg-emerald-500/5 space-y-1 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-            สมบูรณ์
-          </span>
-          <div className="text-3xl font-black text-emerald-300">{summary.completedCount}</div>
-          <span className="text-[11px] text-emerald-500/80">เช็กอินและเช็กเอาต์ครบถ้วน</span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-amber-500/30 bg-amber-500/5 space-y-1 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-            ไม่สมบูรณ์
-          </span>
-          <div className="text-3xl font-black text-amber-300">{summary.incompleteCount}</div>
-          <span className="text-[11px] text-amber-500/80">รอการเช็กเอาต์</span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            สรุปสถิติการเข้าร่วม
-          </span>
-          <div className="text-sm font-bold text-slate-200 mt-2 space-y-0.5">
-            <div>ลงชื่อเช็กอิน: <span className="text-indigo-400 font-mono">{summary.checkedInCount}</span></div>
-            <div>ลงชื่อเช็กเอาต์: <span className="text-indigo-400 font-mono">{summary.checkedOutCount}</span></div>
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-1">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              สรุปสถิติการเข้าร่วม
+            </span>
+            <div className="text-xs font-semibold text-slate-700 mt-2 space-y-0.5">
+              <div>ลงชื่อเช็กอิน: <span className="text-university-700 font-mono font-bold">{summary.checkedInCount}</span></div>
+              <div>ลงชื่อเช็กเอาต์: <span className="text-university-700 font-mono font-bold">{summary.checkedOutCount}</span></div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Filter Bar & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-        {/* Status Filter Buttons */}
-        <div className="flex items-center gap-2">
-          {(['ALL', 'COMPLETED', 'INCOMPLETE'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                statusFilter === st
-                  ? st === 'COMPLETED'
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
-                    : st === 'INCOMPLETE'
-                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20'
-                    : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                  : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
-              }`}
-            >
-              {st === 'ALL' ? 'ทั้งหมด' : st === 'COMPLETED' ? 'สมบูรณ์' : 'ไม่สมบูรณ์'}
-            </button>
-          ))}
+        {/* Filter Bar & Search */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          {/* Status Filter Buttons */}
+          <div className="flex items-center gap-2">
+            {(['ALL', 'COMPLETED', 'INCOMPLETE'] as const).map((st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  statusFilter === st
+                    ? st === 'COMPLETED'
+                      ? 'bg-emerald-700 text-white'
+                      : st === 'INCOMPLETE'
+                      ? 'bg-amber-700 text-white'
+                      : 'bg-university-700 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                {st === 'ALL' ? 'ทั้งหมด' : st === 'COMPLETED' ? 'สมบูรณ์' : 'ไม่สมบูรณ์'}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative flex-1 sm:max-w-xs">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ค้นหาด้วยชื่อนักศึกษา, รหัสนักศึกษา..."
+              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-university-700 focus:ring-1 focus:ring-university-700 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ค้นหาด้วยชื่อนักศึกษา, รหัสนักศึกษา..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-300"
-            >
-              ✕
-            </button>
+        {/* Attendance Records Table */}
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          {filteredRecords.length === 0 ? (
+            <div className="p-10 text-center space-y-2 text-slate-600">
+              <h3 className="text-sm font-bold text-slate-800">ไม่พบข้อมูลการเข้าร่วมกิจกรรม</h3>
+              <p className="text-xs text-slate-500">
+                {data.records.length === 0
+                  ? 'ยังไม่มีนักศึกษาส่งข้อมูลการเข้าร่วมสำหรับกิจกรรมนี้'
+                  : 'ไม่พบรายการข้อมูลการเข้าร่วมที่ตรงกับเงื่อนไขการค้นหา'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="p-3.5 pl-5">รหัสนักศึกษา</th>
+                    <th className="p-3.5">ชื่อ - นามสกุล</th>
+                    <th className="p-3.5">คณะและสาขาวิชา</th>
+                    <th className="p-3.5">ชั้นปี</th>
+                    <th className="p-3.5">เวลาเช็กอิน</th>
+                    <th className="p-3.5">เวลาเช็กเอาต์</th>
+                    <th className="p-3.5">สถานะ</th>
+                    <th className="p-3.5 pr-5 text-right">การดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-slate-800">
+                  {filteredRecords.map((rec) => (
+                    <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3.5 pl-5 font-mono font-bold text-university-800">{rec.studentId}</td>
+                      <td className="p-3.5 font-bold text-slate-900">{rec.studentName}</td>
+                      <td className="p-3.5 text-slate-600">
+                        {rec.faculty} <span className="text-slate-400">({rec.major})</span>
+                      </td>
+                      <td className="p-3.5 text-slate-700">ชั้นปีที่ {rec.year}</td>
+                      <td className="p-3.5 font-mono text-slate-700">
+                        {rec.checkInTime ? new Date(rec.checkInTime).toLocaleTimeString('th-TH') : '—'}
+                      </td>
+                      <td className="p-3.5 font-mono text-slate-700">
+                        {rec.checkOutTime ? new Date(rec.checkOutTime).toLocaleTimeString('th-TH') : '—'}
+                      </td>
+                      <td className="p-3.5">
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${
+                            rec.status === 'COMPLETED'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}
+                        >
+                          {rec.status === 'COMPLETED' ? 'สมบูรณ์' : 'ไม่สมบูรณ์'}
+                        </span>
+                      </td>
+                      <td className="p-3.5 pr-5 text-right">
+                        <button
+                          onClick={() => setSelectedRecord(rec)}
+                          className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-semibold text-xs shadow-sm transition-colors"
+                        >
+                          ตรวจสอบหลักฐาน
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Attendance Records Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-        {filteredRecords.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
-              📋
+        {/* Submission Proof Inspection Modal */}
+        {selectedRecord && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto font-sans select-none">
+            <div className="max-w-2xl w-full bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-6 shadow-xl relative my-8">
+              <button
+                onClick={() => setSelectedRecord(null)}
+                className="absolute top-5 right-5 w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 flex items-center justify-center text-xs"
+              >
+                ✕
+              </button>
+
+              {/* Modal Header */}
+              <div className="space-y-1 pr-6 border-b border-slate-200 pb-4">
+                <span
+                  className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold mb-1 ${
+                    selectedRecord.status === 'COMPLETED'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200'
+                  }`}
+                >
+                  {selectedRecord.status === 'COMPLETED' ? 'บันทึกการเข้าร่วมสมบูรณ์' : 'บันทึกการเข้าร่วมไม่สมบูรณ์'}
+                </span>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {selectedRecord.studentName}
+                </h2>
+                <p className="text-xs text-slate-600 font-mono">
+                  รหัสนักศึกษา: {selectedRecord.studentId} • {selectedRecord.faculty} ({selectedRecord.major}) — ชั้นปีที่ {selectedRecord.year}
+                </p>
+              </div>
+
+              {/* Proof Photos Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Check-In Proof */}
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs border-b border-slate-200 pb-2">
+                    <span className="font-bold text-emerald-800 uppercase tracking-wider">
+                      หลักฐานการเช็กอิน
+                    </span>
+                    <span className="font-mono text-slate-600 text-[11px]">
+                      {selectedRecord.checkInTime ? new Date(selectedRecord.checkInTime).toLocaleString('th-TH') : 'ไม่มีข้อมูล'}
+                    </span>
+                  </div>
+
+                  {selectedRecord.checkInProofUrl ? (
+                    <AuthenticatedProofImage
+                      src={selectedRecord.checkInProofUrl}
+                      alt="หลักฐานการเช็กอิน"
+                      token={token}
+                    />
+                  ) : (
+                    <div className="w-full h-48 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500 text-xs">
+                      <span>ไม่ได้อัปโหลดรูปภาพหลักฐาน</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Check-Out Proof */}
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs border-b border-slate-200 pb-2">
+                    <span className="font-bold text-amber-800 uppercase tracking-wider">
+                      หลักฐานการเช็กเอาต์
+                    </span>
+                    <span className="font-mono text-slate-600 text-[11px]">
+                      {selectedRecord.checkOutTime ? new Date(selectedRecord.checkOutTime).toLocaleString('th-TH') : 'รอการเช็กเอาต์'}
+                    </span>
+                  </div>
+
+                  {selectedRecord.checkOutProofUrl ? (
+                    <AuthenticatedProofImage
+                      src={selectedRecord.checkOutProofUrl}
+                      alt="หลักฐานการเช็กเอาต์"
+                      token={token}
+                    />
+                  ) : (
+                    <div className="w-full h-48 rounded-lg bg-white border border-slate-200 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
+                      <span>{selectedRecord.checkOutTime ? 'ไม่มีไฟล์รูปภาพ' : 'ไม่สมบูรณ์'}</span>
+                      {!selectedRecord.checkOutTime && (
+                        <span className="text-[10px] text-slate-400">อยู่ระหว่างรอเช็กเอาต์</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Student Feedback */}
+              {selectedRecord.feedback && (
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="text-xs font-semibold text-slate-700 block uppercase tracking-wider">
+                    ข้อเสนอแนะ / ข้อคิดเห็นจากนักศึกษา
+                  </span>
+                  <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-line">
+                    {selectedRecord.feedback}
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="w-full py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+                >
+                  ปิดหน้าต่างตรวจสอบ
+                </button>
+              </div>
             </div>
-            <h3 className="text-base font-bold text-slate-300">ไม่พบข้อมูลการเข้าร่วมกิจกรรม</h3>
-            <p className="text-xs text-slate-500">
-              {data.records.length === 0
-                ? 'ยังไม่มีนักศึกษาส่งข้อมูลการเข้าร่วมสำหรับกิจกรรมนี้'
-                : 'ไม่พบรายการข้อมูลการเข้าร่วมที่ตรงกับเงื่อนไขการค้นหา'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold text-[11px]">
-                  <th className="p-4 pl-6">รหัสนักศึกษา</th>
-                  <th className="p-4">ชื่อ - นามสกุล</th>
-                  <th className="p-4">คณะและสาขาวิชา</th>
-                  <th className="p-4">ชั้นปี</th>
-                  <th className="p-4">เวลาเช็กอิน</th>
-                  <th className="p-4">เวลาเช็กเอาต์</th>
-                  <th className="p-4">สถานะ</th>
-                  <th className="p-4 pr-6 text-right">การดำเนินการ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {filteredRecords.map((rec) => (
-                  <tr key={rec.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-4 pl-6 font-mono font-bold text-indigo-400">{rec.studentId}</td>
-                    <td className="p-4 font-bold text-slate-100">{rec.studentName}</td>
-                    <td className="p-4 text-slate-400">
-                      {rec.faculty} <span className="text-slate-600">({rec.major})</span>
-                    </td>
-                    <td className="p-4">ชั้นปีที่ {rec.year}</td>
-                    <td className="p-4 font-mono text-slate-300">
-                      {rec.checkInTime ? new Date(rec.checkInTime).toLocaleTimeString('th-TH') : '—'}
-                    </td>
-                    <td className="p-4 font-mono text-slate-300">
-                      {rec.checkOutTime ? new Date(rec.checkOutTime).toLocaleTimeString('th-TH') : '—'}
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          rec.status === 'COMPLETED'
-                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                            : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-                        }`}
-                      >
-                        {rec.status === 'COMPLETED' ? 'สมบูรณ์' : 'ไม่สมบูรณ์'}
-                      </span>
-                    </td>
-                    <td className="p-4 pr-6 text-right">
-                      <button
-                        onClick={() => setSelectedRecord(rec)}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/20 hover:border-indigo-500 text-indigo-300 hover:text-white font-bold text-[11px] transition-all"
-                      >
-                        ตรวจสอบรายละเอียด
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         )}
       </div>
-
-      {/* Submission Inspection Modal */}
-      {selectedRecord && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative my-8">
-            <button
-              onClick={() => setSelectedRecord(null)}
-              className="absolute top-6 right-6 w-8 h-8 rounded-full bg-slate-950 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-sm"
-            >
-              ✕
-            </button>
-
-            {/* Modal Header */}
-            <div className="space-y-1 pr-8">
-              <span
-                className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-2 ${
-                  selectedRecord.status === 'COMPLETED'
-                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                    : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-                }`}
-              >
-                {selectedRecord.status === 'COMPLETED' ? 'บันทึกการเข้าร่วมสมบูรณ์' : 'บันทึกการเข้าร่วมไม่สมบูรณ์'}
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-100">
-                {selectedRecord.studentName}
-              </h2>
-              <p className="text-xs text-slate-400 font-mono">
-                รหัสนักศึกษา: {selectedRecord.studentId} • {selectedRecord.faculty} ({selectedRecord.major}) — ชั้นปีที่ {selectedRecord.year}
-              </p>
-            </div>
-
-            {/* Proof Photos Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Check-In Proof */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
-                  <span className="font-bold text-emerald-400 uppercase tracking-wider">
-                    หลักฐานการเช็กอิน
-                  </span>
-                  <span className="font-mono text-slate-400 text-[11px]">
-                    {selectedRecord.checkInTime ? new Date(selectedRecord.checkInTime).toLocaleString('th-TH') : 'ไม่มีข้อมูล'}
-                  </span>
-                </div>
-
-                {selectedRecord.checkInProofUrl ? (
-                  <AuthenticatedProofImage
-                    src={selectedRecord.checkInProofUrl}
-                    alt="หลักฐานการเช็กอิน"
-                    token={token}
-                  />
-                ) : (
-                  <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs">
-                    <span>ไม่ได้อัปโหลดรูปภาพหลักฐาน</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Check-Out Proof */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
-                  <span className="font-bold text-amber-400 uppercase tracking-wider">
-                    หลักฐานการเช็กเอาต์
-                  </span>
-                  <span className="font-mono text-slate-400 text-[11px]">
-                    {selectedRecord.checkOutTime ? new Date(selectedRecord.checkOutTime).toLocaleString('th-TH') : 'รอการเช็กเอาต์'}
-                  </span>
-                </div>
-
-                {selectedRecord.checkOutProofUrl ? (
-                  <AuthenticatedProofImage
-                    src={selectedRecord.checkOutProofUrl}
-                    alt="หลักฐานการเช็กเอาต์"
-                    token={token}
-                  />
-                ) : (
-                  <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
-                    <span>{selectedRecord.checkOutTime ? 'ไม่มีไฟล์รูปภาพ' : 'ไม่สมบูรณ์'}</span>
-                    {!selectedRecord.checkOutTime && (
-                      <span className="text-[10px] text-slate-600">อยู่ระหว่างรอเช็กเอาต์</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Student Feedback */}
-            {selectedRecord.feedback && (
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                  ข้อเสนอแนะ / ข้อคิดเห็นจากนักศึกษา
-                </span>
-                <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-line">
-                  {selectedRecord.feedback}
-                </p>
-              </div>
-            )}
-
-            <div className="pt-2">
-              <button
-                onClick={() => setSelectedRecord(null)}
-                className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors"
-              >
-                ปิดหน้าต่างตรวจสอบ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </AdminLayout>
   );
 }
-
