@@ -71,28 +71,42 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   const loadProfileAndSession = useCallback(async (devStudentId?: string, tok?: string) => {
     setProfileLoading(true);
     try {
+      const isDev = process.env.NODE_ENV === 'development';
+      const devParam = isDev ? devStudentId : undefined;
       const activeToken = tok || studentAccessToken || (typeof window !== 'undefined' ? localStorage.getItem('student_access_token') : null) || undefined;
+      
       const [profileRes, refreshedSession] = await Promise.all([
-        fetchStudentProfile(devStudentId, activeToken),
-        fetchSessionByToken(token, devStudentId, activeToken).catch(() => null),
+        fetchStudentProfile(devParam, activeToken).catch(() => null),
+        fetchSessionByToken(token, devParam, activeToken).catch(() => null),
       ]);
-      setProfile(profileRes.currentStudent);
-      setAvailableStudents(profileRes.availableStudents);
-      if (!selectedDevStudentId && profileRes.currentStudent) {
-        setSelectedDevStudentId(profileRes.currentStudent.id);
+
+      if (profileRes && profileRes.currentStudent) {
+        setProfile(profileRes.currentStudent);
+        setAvailableStudents(isDev ? profileRes.availableStudents : []);
+        if (isDev && !selectedDevStudentId && profileRes.currentStudent) {
+          setSelectedDevStudentId(profileRes.currentStudent.id);
+        }
+      } else {
+        setProfile(null);
+        setAvailableStudents([]);
       }
+
       if (refreshedSession) {
         setSessionData(refreshedSession);
       }
     } catch (err) {
       console.error('Failed to load student profile/session:', err);
+      setProfile(null);
+      setAvailableStudents([]);
     } finally {
       setProfileLoading(false);
     }
   }, [token, selectedDevStudentId, studentAccessToken]);
 
   useEffect(() => {
-    loadProfileAndSession(selectedDevStudentId, studentAccessToken || undefined);
+    const isDev = process.env.NODE_ENV === 'development';
+    const devParam = isDev ? selectedDevStudentId : undefined;
+    loadProfileAndSession(devParam, studentAccessToken || undefined);
   }, [selectedDevStudentId, studentAccessToken, loadProfileAndSession]);
 
   // Initialize LIFF and verify LINE Token if present
@@ -107,12 +121,17 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
           if (verified.accessToken) {
             localStorage.setItem('student_access_token', verified.accessToken);
             setStudentAccessToken(verified.accessToken);
+          } else {
+            localStorage.removeItem('student_access_token');
+            setStudentAccessToken(null);
           }
           if (verified.displayName) {
             setLineDisplayName(verified.displayName);
           }
           if (verified.linked && verified.student) {
             setProfile(verified.student);
+          } else {
+            setProfile(null);
           }
         } catch (err) {
           console.warn('LINE Token Verification Warning:', err);
@@ -193,8 +212,9 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
 
     setSubmitting(true);
     try {
+      const isDev = process.env.NODE_ENV === 'development';
       const activeToken = studentAccessToken || (typeof window !== 'undefined' ? localStorage.getItem('student_access_token') : null) || undefined;
-      const devStudentIdToSend = selectedDevStudentId ? selectedDevStudentId : undefined;
+      const devStudentIdToSend = isDev && selectedDevStudentId ? selectedDevStudentId : undefined;
       const result = await submitAttendance(
         token,
         photoFile,
@@ -508,7 +528,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
       )}
 
       {/* Dev Mode Student Switcher (Development Only) */}
-      {availableStudents.length > 1 && (
+      {process.env.NODE_ENV === 'development' && availableStudents.length > 1 && (
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-indigo-900/40 space-y-2">
           <div className="flex items-center justify-between text-[11px] font-mono text-indigo-400 uppercase tracking-wider">
             <span>⚙️ DEV TEST SWITCHER</span>

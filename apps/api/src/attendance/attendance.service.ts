@@ -259,17 +259,20 @@ export class AttendanceService {
    * Fetches authenticated student profile and available dev test students
    */
   async getStudentProfile(studentIdOrParam?: string, authHeader?: string) {
+    const isDev = (this.configService.get<string>('nodeEnv') || process.env.NODE_ENV || 'development') === 'development';
     const currentStudent = await this.resolveStudent(studentIdOrParam, authHeader);
-    const availableStudents = await this.prisma.student.findMany({
-      select: {
-        id: true,
-        studentId: true,
-        fullName: true,
-        faculty: true,
-        major: true,
-        year: true,
-      },
-    });
+    const availableStudents = isDev
+      ? await this.prisma.student.findMany({
+          select: {
+            id: true,
+            studentId: true,
+            fullName: true,
+            faculty: true,
+            major: true,
+            year: true,
+          },
+        })
+      : [];
 
     return {
       currentStudent: {

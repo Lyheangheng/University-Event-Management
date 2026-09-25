@@ -83,7 +83,8 @@ function getAuthHeader(devStudentId?: string, studentToken?: string): Record<str
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  if (devStudentId) {
+  const isDev = process.env.NODE_ENV === 'development';
+  if (isDev && devStudentId) {
     headers['x-dev-student-id'] = devStudentId;
   }
 

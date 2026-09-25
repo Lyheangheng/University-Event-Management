@@ -1,0 +1,94 @@
+==============================================================================
+PHASE 16.23A — DISABLE DEV STUDENT OVERRIDE IN PRODUCTION REPORT
+==============================================================================
+
+1. ROOT CAUSE ANALYSIS
+------------------------------------------------------------------------------
+The "DEV TEST SWITCHER — LOCAL TEST MODE" banner was appearing on the production
+attendance page because:
+1. Backend (`apps/api/src/attendance/attendance.service.ts`):
+   The `getStudentProfile` service method fetched all student records from the database
+   via `prisma.student.findMany()` and returned them in `availableStudents` unconditionally,
+   without checking whether `NODE_ENV` was development or production.
+2. Frontend (`apps/web/src/components/attendance/StudentAttendanceForm.tsx`):
+   The Dev Test Switcher JSX component checked `{availableStudents.length > 1 && ...}`
+   without wrapping the render condition in `process.env.NODE_ENV === 'development'`.
+3. Parameter Transport (`apps/web/src/lib/attendance-api.ts`):
+   The `getAuthHeader` helper attached `x-dev-student-id` whenever a `devStudentId` was passed,
+   and `StudentAttendanceForm.tsx` passed `selectedDevStudentId` to `fetchStudentProfile`,
+   `fetchSessionByToken`, and `submitAttendance` in all environments.
+4. Stale Browser State:
+   If a user previously tested in development or had a stale `student_access_token` stored
+   in `localStorage`, the frontend loaded that token or dev student state, masking the real
+   unlinked LINE onboarding status.
+
+2. WHERE DEV TEST SWITCHER WAS IMPLEMENTED
+------------------------------------------------------------------------------
+- Frontend Component: `apps/web/src/components/attendance/StudentAttendanceForm.tsx` (Lines 510-529)
+- Frontend API Client: `apps/web/src/lib/attendance-api.ts` (Lines 78-91)
+- Backend Service: `apps/api/src/attendance/attendance.service.ts` (Lines 261-285)
+
+3. WHAT CODE WAS CHANGED
+------------------------------------------------------------------------------
+1. Backend (`apps/api/src/attendance/attendance.service.ts`):
+   Updated `getStudentProfile` to check `isDev`. In production (`!isDev`), `availableStudents`
+   is explicitly set to an empty array `[]`.
+2. Frontend API Client (`apps/web/src/lib/attendance-api.ts`):
+   Updated `getAuthHeader` to include `process.env.NODE_ENV === 'development'` check.
+   The `x-dev-student-id` header is now strictly omitted when `NODE_ENV === 'production'`.
+3. Frontend Component (`apps/web/src/components/attendance/StudentAttendanceForm.tsx`):
+   - Wrapped Dev Test Switcher JSX rendering in `process.env.NODE_ENV === 'development' && availableStudents.length > 1`.
+   - Updated `loadProfileAndSession` and `handleSubmit` to pass `devStudentId` ONLY when `process.env.NODE_ENV === 'development'`.
+   - Updated LIFF token verification callback (`checkLiff`): When LINE user verification returns `status: 'UNLINKED'` or `!verified.accessToken`, `localStorage.removeItem('student_access_token')` is called and `studentAccessToken` and `profile` states are set to `null`.
+
+4. PRODUCTION BEHAVIOR
+------------------------------------------------------------------------------
+When an unlinked LINE account scans an attendance QR in production (`process.env.NODE_ENV === 'production'`):
+1. Dev Test Switcher / Local Test Mode banner does NOT render under any circumstances.
+2. No development student dropdown or manual student selector is shown.
+3. No fallback student identity (e.g. Somchai Jaidee / 66010001) is injected into the form.
+4. `x-dev-student-id` header is omitted from client requests and rejected by the API.
+5. Stale `student_access_token` items in `localStorage` are cleared upon encountering an unlinked status.
+6. The user is presented with the real unlinked onboarding screen:
+   - "⚠️ LINE Account Unlinked" banner
+   - Clear prompt to enter Student ID to link account
+
+5. DEVELOPMENT BEHAVIOR
+------------------------------------------------------------------------------
+When running in local development mode (`process.env.NODE_ENV === 'development'`):
+1. `availableStudents` list is fetched and returned by the backend.
+2. Dev Test Switcher renders normally when multiple student test records exist.
+3. Local test mode capabilities remain fully functional for local developer testing.
+
+6. BROWSER / LOCAL STORAGE STATE CLEARING
+------------------------------------------------------------------------------
+- Stale `student_access_token` entries in `localStorage` are automatically removed when `verifyLineToken` returns `status: 'UNLINKED'` or `!verified.accessToken`.
+- React component state (`profile`, `availableStudents`, `selectedDevStudentId`) is reset to `null` / `[]` / `''`.
+
+7. TESTS EXECUTED & RESULTS
+------------------------------------------------------------------------------
+- Test Command: `npm test` in `apps/api`
+- Test File: `apps/api/src/attendance/attendance-regression.spec.ts`
+- Total Tests: 14
+- Passed: 14
+- Failed: 0
+- Skipped: 0
+- Pass Rate: 100%
+- Verified: Test 3 & Test 5 confirm dev header bypass rejection in production.
+
+8. API BUILD RESULT
+------------------------------------------------------------------------------
+- Command: `npm run build` in `apps/api`
+- Result: PASSED (NestJS build compiled cleanly with 0 errors)
+
+9. WEB BUILD RESULT
+------------------------------------------------------------------------------
+- Command: `npm run build` in `apps/web`
+- Result: PASSED (Next.js 14.2.35 build compiled cleanly with 0 errors)
+
+10. DATABASE RECORDS MODIFICATION STATUS
+------------------------------------------------------------------------------
+- Student database records modified: NONE
+- Student database records deleted: NONE
+- Student `lineUserId` fields altered: NONE
+- Production database integrity maintained 100%.
