@@ -1,14 +1,14 @@
 import { EventStatus } from '../types/event';
 
 /**
- * Format ISO date string into human-readable university format (e.g. "19 September 2026")
+ * Format ISO date string into human-readable Thai university format (e.g. "10 ตุลาคม 2569")
  */
 export function formatEventDate(dateString: string): string {
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString('th-TH', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -19,7 +19,7 @@ export function formatEventDate(dateString: string): string {
 }
 
 /**
- * Format start time and end time strings into "09:00 – 12:00"
+ * Format start time and end time strings into Thai time format "09:00 – 12:00 น."
  */
 export function formatTimeRange(startTimeString: string, endTimeString: string): string {
   try {
@@ -27,19 +27,19 @@ export function formatTimeRange(startTimeString: string, endTimeString: string):
     const end = new Date(endTimeString);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return `${startTimeString} – ${endTimeString}`;
+      return `${startTimeString} – ${endTimeString} น.`;
     }
 
     const formatTime = (d: Date) =>
-      d.toLocaleTimeString('en-GB', {
+      d.toLocaleTimeString('th-TH', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
       });
 
-    return `${formatTime(start)} – ${formatTime(end)}`;
+    return `${formatTime(start)} – ${formatTime(end)} น.`;
   } catch (e) {
-    return `${startTimeString} – ${endTimeString}`;
+    return `${startTimeString} – ${endTimeString} น.`;
   }
 }
 

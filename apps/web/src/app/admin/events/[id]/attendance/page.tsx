@@ -87,7 +87,7 @@ function AuthenticatedProofImage({
   if (loading) {
     return (
       <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 animate-pulse text-xs">
-        <span>Loading proof photo...</span>
+        <span>กำลังโหลดรูปภาพหลักฐาน...</span>
       </div>
     );
   }
@@ -95,8 +95,8 @@ function AuthenticatedProofImage({
   if (error || !objectUrl) {
     return (
       <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
-        <span>Failed to load proof photo</span>
-        <span className="text-[10px] text-slate-600">Unauthorized or image missing</span>
+        <span>ไม่สามารถโหลดรูปภาพหลักฐานได้</span>
+        <span className="text-[10px] text-slate-600">ไม่มีสิทธิ์เข้าถึง หรือไม่พบไฟล์รูปภาพ</span>
       </div>
     );
   }
@@ -154,7 +154,7 @@ export default function AdminEventAttendancePage() {
       } else if (err.message === 'EVENT_NOT_FOUND') {
         setError('EVENT_NOT_FOUND');
       } else {
-        setError(err.message || 'Failed to load attendance records');
+        setError(err.message || 'ไม่สามารถโหลดข้อมูลการเข้าร่วมกิจกรรมได้');
       }
     } finally {
       setLoading(false);
@@ -219,16 +219,16 @@ export default function AdminEventAttendancePage() {
           ⚠️
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-black text-slate-100">Event Not Found</h1>
+          <h1 className="text-2xl font-black text-slate-100">ไม่พบกิจกรรม</h1>
           <p className="text-slate-400 text-sm">
-            The event requested for attendance review does not exist.
+            ไม่พบกิจกรรมที่ต้องการตรวจสอบข้อมูลการเข้าร่วม
           </p>
         </div>
         <Link
           href="/admin"
           className="inline-block py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
         >
-          Return to Admin Dashboard
+          กลับสู่แผงควบคุมผู้ดูแลระบบ
         </Link>
       </div>
     );
@@ -242,21 +242,21 @@ export default function AdminEventAttendancePage() {
           ✕
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-black text-slate-100">Failed to Load Attendance</h1>
-          <p className="text-slate-400 text-sm">{error || 'An unexpected error occurred.'}</p>
+          <h1 className="text-2xl font-black text-slate-100">ไม่สามารถโหลดข้อมูลการเข้าร่วม</h1>
+          <p className="text-slate-400 text-sm">{error || 'เกิดข้อผิดพลาดที่ไม่คาดคิด'}</p>
         </div>
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => token && loadAttendance(token)}
             className="py-3 px-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-bold text-sm transition-all"
           >
-            Retry
+            ลองอีกครั้ง
           </button>
           <Link
             href="/admin"
             className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
           >
-            Back to Dashboard
+            กลับสู่แผงควบคุม
           </Link>
         </div>
       </div>
@@ -272,9 +272,9 @@ export default function AdminEventAttendancePage() {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-black uppercase tracking-widest">
-              ADMINISTRATOR PORTAL
+              ระบบจัดการสำหรับผู้ดูแลระบบ
             </span>
-            <span className="text-xs text-slate-500">• Attendance Management</span>
+            <span className="text-xs text-slate-500">• จัดการข้อมูลการเข้าร่วม</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-slate-100 tracking-tight leading-tight">
             {event.title}
@@ -289,25 +289,25 @@ export default function AdminEventAttendancePage() {
             href="/admin"
             className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all"
           >
-            ← Admin Dashboard
+            ← แผงควบคุม
           </Link>
           <Link
             href={`/admin/events/${event.id}/projector/check-in`}
             className="px-4 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 text-xs font-bold transition-all"
           >
-            Check-In Display
+            หน้าจอ QR เช็กอิน
           </Link>
           <Link
             href={`/admin/events/${event.id}/projector/check-out`}
             className="px-4 py-2 rounded-xl bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all"
           >
-            Check-Out Display
+            หน้าจอ QR เช็กเอาต์
           </Link>
           <button
             onClick={handleLogout}
             className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold transition-all"
           >
-            Sign Out
+            ออกจากระบบ
           </button>
         </div>
       </header>
@@ -316,35 +316,35 @@ export default function AdminEventAttendancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1 shadow-lg">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            TOTAL RECORDS
+            จำนวนบันทึกทั้งหมด
           </span>
           <div className="text-3xl font-black text-slate-100">{summary.totalRecords}</div>
-          <span className="text-[11px] text-slate-500">Student submissions</span>
+          <span className="text-[11px] text-slate-500">รายการที่นักศึกษาส่ง</span>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-emerald-500/30 bg-emerald-500/5 space-y-1 shadow-lg">
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-            COMPLETED
+            สมบูรณ์
           </span>
           <div className="text-3xl font-black text-emerald-300">{summary.completedCount}</div>
-          <span className="text-[11px] text-emerald-500/80">Checked-in & Checked-out</span>
+          <span className="text-[11px] text-emerald-500/80">เช็กอินและเช็กเอาต์ครบถ้วน</span>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-amber-500/30 bg-amber-500/5 space-y-1 shadow-lg">
           <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-            INCOMPLETE
+            ไม่สมบูรณ์
           </span>
           <div className="text-3xl font-black text-amber-300">{summary.incompleteCount}</div>
-          <span className="text-[11px] text-amber-500/80">Awaiting Check-Out</span>
+          <span className="text-[11px] text-amber-500/80">รอการเช็กเอาต์</span>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1 shadow-lg">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            PARTICIPATION BREAKDOWN
+            สรุปสถิติการเข้าร่วม
           </span>
           <div className="text-sm font-bold text-slate-200 mt-2 space-y-0.5">
-            <div>Check-Ins: <span className="text-indigo-400 font-mono">{summary.checkedInCount}</span></div>
-            <div>Check-Outs: <span className="text-indigo-400 font-mono">{summary.checkedOutCount}</span></div>
+            <div>ลงชื่อเช็กอิน: <span className="text-indigo-400 font-mono">{summary.checkedInCount}</span></div>
+            <div>ลงชื่อเช็กเอาต์: <span className="text-indigo-400 font-mono">{summary.checkedOutCount}</span></div>
           </div>
         </div>
       </div>
@@ -367,7 +367,7 @@ export default function AdminEventAttendancePage() {
                   : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
               }`}
             >
-              {st === 'ALL' ? 'All Records' : st}
+              {st === 'ALL' ? 'ทั้งหมด' : st === 'COMPLETED' ? 'สมบูรณ์' : 'ไม่สมบูรณ์'}
             </button>
           ))}
         </div>
@@ -378,7 +378,7 @@ export default function AdminEventAttendancePage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by student name, ID..."
+            placeholder="ค้นหาด้วยชื่อนักศึกษา, รหัสนักศึกษา..."
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-indigo-500 transition-colors"
           />
           {searchQuery && (
@@ -399,11 +399,11 @@ export default function AdminEventAttendancePage() {
             <div className="w-12 h-12 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
               📋
             </div>
-            <h3 className="text-base font-bold text-slate-300">No attendance submissions found</h3>
+            <h3 className="text-base font-bold text-slate-300">ไม่พบข้อมูลการเข้าร่วมกิจกรรม</h3>
             <p className="text-xs text-slate-500">
               {data.records.length === 0
-                ? 'No students have submitted attendance for this event yet.'
-                : 'No attendance records match the selected filter criteria.'}
+                ? 'ยังไม่มีนักศึกษาส่งข้อมูลการเข้าร่วมสำหรับกิจกรรมนี้'
+                : 'ไม่พบรายการข้อมูลการเข้าร่วมที่ตรงกับเงื่อนไขการค้นหา'}
             </p>
           </div>
         ) : (
@@ -411,14 +411,14 @@ export default function AdminEventAttendancePage() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold text-[11px]">
-                  <th className="p-4 pl-6">Student ID</th>
-                  <th className="p-4">Name</th>
-                  <th className="p-4">Faculty & Major</th>
-                  <th className="p-4">Year</th>
-                  <th className="p-4">Check-In Time</th>
-                  <th className="p-4">Check-Out Time</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 pr-6 text-right">Action</th>
+                  <th className="p-4 pl-6">รหัสนักศึกษา</th>
+                  <th className="p-4">ชื่อ - นามสกุล</th>
+                  <th className="p-4">คณะและสาขาวิชา</th>
+                  <th className="p-4">ชั้นปี</th>
+                  <th className="p-4">เวลาเช็กอิน</th>
+                  <th className="p-4">เวลาเช็กเอาต์</th>
+                  <th className="p-4">สถานะ</th>
+                  <th className="p-4 pr-6 text-right">การดำเนินการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
@@ -429,12 +429,12 @@ export default function AdminEventAttendancePage() {
                     <td className="p-4 text-slate-400">
                       {rec.faculty} <span className="text-slate-600">({rec.major})</span>
                     </td>
-                    <td className="p-4">Year {rec.year}</td>
+                    <td className="p-4">ชั้นปีที่ {rec.year}</td>
                     <td className="p-4 font-mono text-slate-300">
-                      {rec.checkInTime ? new Date(rec.checkInTime).toLocaleTimeString('en-GB') : '—'}
+                      {rec.checkInTime ? new Date(rec.checkInTime).toLocaleTimeString('th-TH') : '—'}
                     </td>
                     <td className="p-4 font-mono text-slate-300">
-                      {rec.checkOutTime ? new Date(rec.checkOutTime).toLocaleTimeString('en-GB') : '—'}
+                      {rec.checkOutTime ? new Date(rec.checkOutTime).toLocaleTimeString('th-TH') : '—'}
                     </td>
                     <td className="p-4">
                       <span
@@ -444,7 +444,7 @@ export default function AdminEventAttendancePage() {
                             : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
                         }`}
                       >
-                        {rec.status}
+                        {rec.status === 'COMPLETED' ? 'สมบูรณ์' : 'ไม่สมบูรณ์'}
                       </span>
                     </td>
                     <td className="p-4 pr-6 text-right">
@@ -452,7 +452,7 @@ export default function AdminEventAttendancePage() {
                         onClick={() => setSelectedRecord(rec)}
                         className="px-3 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/20 hover:border-indigo-500 text-indigo-300 hover:text-white font-bold text-[11px] transition-all"
                       >
-                        Inspect Submission
+                        ตรวจสอบรายละเอียด
                       </button>
                     </td>
                   </tr>
@@ -483,13 +483,13 @@ export default function AdminEventAttendancePage() {
                     : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
                 }`}
               >
-                {selectedRecord.status} ATTENDANCE RECORD
+                {selectedRecord.status === 'COMPLETED' ? 'บันทึกการเข้าร่วมสมบูรณ์' : 'บันทึกการเข้าร่วมไม่สมบูรณ์'}
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-100">
                 {selectedRecord.studentName}
               </h2>
               <p className="text-xs text-slate-400 font-mono">
-                Student ID: {selectedRecord.studentId} • {selectedRecord.faculty} ({selectedRecord.major}) — Year {selectedRecord.year}
+                รหัสนักศึกษา: {selectedRecord.studentId} • {selectedRecord.faculty} ({selectedRecord.major}) — ชั้นปีที่ {selectedRecord.year}
               </p>
             </div>
 
@@ -499,22 +499,22 @@ export default function AdminEventAttendancePage() {
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
                   <span className="font-bold text-emerald-400 uppercase tracking-wider">
-                    Check-In Proof
+                    หลักฐานการเช็กอิน
                   </span>
                   <span className="font-mono text-slate-400 text-[11px]">
-                    {selectedRecord.checkInTime ? new Date(selectedRecord.checkInTime).toLocaleString('en-GB') : 'N/A'}
+                    {selectedRecord.checkInTime ? new Date(selectedRecord.checkInTime).toLocaleString('th-TH') : 'ไม่มีข้อมูล'}
                   </span>
                 </div>
 
                 {selectedRecord.checkInProofUrl ? (
                   <AuthenticatedProofImage
                     src={selectedRecord.checkInProofUrl}
-                    alt="Check-in proof"
+                    alt="หลักฐานการเช็กอิน"
                     token={token}
                   />
                 ) : (
                   <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs">
-                    <span>No proof photo uploaded</span>
+                    <span>ไม่ได้อัปโหลดรูปภาพหลักฐาน</span>
                   </div>
                 )}
               </div>
@@ -523,24 +523,24 @@ export default function AdminEventAttendancePage() {
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
                   <span className="font-bold text-amber-400 uppercase tracking-wider">
-                    Check-Out Proof
+                    หลักฐานการเช็กเอาต์
                   </span>
                   <span className="font-mono text-slate-400 text-[11px]">
-                    {selectedRecord.checkOutTime ? new Date(selectedRecord.checkOutTime).toLocaleString('en-GB') : 'Awaiting Checkout'}
+                    {selectedRecord.checkOutTime ? new Date(selectedRecord.checkOutTime).toLocaleString('th-TH') : 'รอการเช็กเอาต์'}
                   </span>
                 </div>
 
                 {selectedRecord.checkOutProofUrl ? (
                   <AuthenticatedProofImage
                     src={selectedRecord.checkOutProofUrl}
-                    alt="Check-out proof"
+                    alt="หลักฐานการเช็กเอาต์"
                     token={token}
                   />
                 ) : (
                   <div className="w-full h-48 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
-                    <span>{selectedRecord.checkOutTime ? 'No photo file' : 'INCOMPLETE'}</span>
+                    <span>{selectedRecord.checkOutTime ? 'ไม่มีไฟล์รูปภาพ' : 'ไม่สมบูรณ์'}</span>
                     {!selectedRecord.checkOutTime && (
-                      <span className="text-[10px] text-slate-600">Check-out pending</span>
+                      <span className="text-[10px] text-slate-600">อยู่ระหว่างรอเช็กเอาต์</span>
                     )}
                   </div>
                 )}
@@ -551,7 +551,7 @@ export default function AdminEventAttendancePage() {
             {selectedRecord.feedback && (
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                  Student Recommendation / Feedback
+                  ข้อเสนอแนะ / ข้อคิดเห็นจากนักศึกษา
                 </span>
                 <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-line">
                   {selectedRecord.feedback}
@@ -564,7 +564,7 @@ export default function AdminEventAttendancePage() {
                 onClick={() => setSelectedRecord(null)}
                 className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors"
               >
-                Close Inspection
+                ปิดหน้าต่างตรวจสอบ
               </button>
             </div>
           </div>
@@ -573,3 +573,4 @@ export default function AdminEventAttendancePage() {
     </div>
   );
 }
+

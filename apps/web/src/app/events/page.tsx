@@ -21,7 +21,7 @@ export default function EventsPage() {
       const data = await fetchEvents();
       setEvents(data);
     } catch (err: any) {
-      setError('Unable to load events. Please try again.');
+      setError('ไม่สามารถโหลดข้อมูลกิจกรรมได้ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setLoading(false);
     }
@@ -32,18 +32,18 @@ export default function EventsPage() {
   }, [loadEvents]);
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8 sm:py-12 space-y-8">
+    <div className="w-full max-w-6xl mx-auto px-4 py-8 sm:py-12 space-y-8 font-sans">
       {/* Top Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-2">
-            Student Portal
+            พอร์ตัลนักศึกษา
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
-            University Events
+            กิจกรรมมหาวิทยาลัย
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Browse upcoming, ongoing, and past campus events and activities.
+            เลือกดูรายการกิจกรรมมหาวิทยาลัยที่กำลังจะมาถึง ดำเนินอยู่ และสิ้นสุดแล้ว
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export default function EventsPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          Home
+          หน้าแรก
         </Link>
       </header>
 
@@ -66,11 +66,11 @@ export default function EventsPage() {
           <SkeletonCard />
         </div>
       ) : error ? (
-        <ErrorState title="Failed to Load Events" message={error} onRetry={loadEvents} />
+        <ErrorState title="ไม่สามารถโหลดข้อมูลกิจกรรมได้" message={error} onRetry={loadEvents} />
       ) : events.length === 0 ? (
         <EmptyState
-          title="No events available"
-          description="Check back later for new university events and activities."
+          title="ยังไม่มีกิจกรรมในขณะนี้"
+          description="กรุณากลับมาร่วมตรวจสอบกิจกรรมใหม่ของมหาวิทยาลัยอีกครั้งในภายหลัง"
         />
       ) : (
         /* Event Grid */
@@ -83,4 +83,3 @@ export default function EventsPage() {
     </div>
   );
 }
-

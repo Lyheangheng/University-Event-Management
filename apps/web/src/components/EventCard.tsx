@@ -2,16 +2,15 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { EventItem } from '../types/event';
 import { formatEventDate, formatTimeRange, calculateEventStatus, getEventImageUrl } from '../lib/formatters';
+import { StatusBadge } from './ui/StatusBadge';
 
 interface EventCardProps {
   event: EventItem;
 }
 
 export function EventCard({ event }: EventCardProps) {
-  const router = useRouter();
   const [imageError, setImageError] = useState(false);
 
   const status = calculateEventStatus(event.startTime, event.endTime);
@@ -19,32 +18,6 @@ export function EventCard({ event }: EventCardProps) {
   const displayImageUrl = getEventImageUrl(event.imageUrl) || (
     event.images && event.images.length > 0 ? getEventImageUrl(event.images[0].imageUrl) : null
   );
-
-  const getStatusBadge = () => {
-    switch (status) {
-      case 'ONGOING':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            ONGOING
-          </span>
-        );
-      case 'UPCOMING':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            <span className="w-2 h-2 rounded-full bg-indigo-400" />
-            UPCOMING
-          </span>
-        );
-      case 'ENDED':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
-            <span className="w-2 h-2 rounded-full bg-slate-500" />
-            ENDED
-          </span>
-        );
-    }
-  };
 
   return (
     <div className="group bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-indigo-950/30">
@@ -73,7 +46,7 @@ export function EventCard({ event }: EventCardProps) {
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-xs font-medium text-slate-400">University Event</span>
+            <span className="text-xs font-medium text-slate-400">กิจกรรมมหาวิทยาลัย</span>
           </div>
         )}
       </div>
@@ -82,9 +55,9 @@ export function EventCard({ event }: EventCardProps) {
       <div className="p-5 flex-1 flex flex-col justify-between gap-4">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            {getStatusBadge()}
+            <StatusBadge variant={status as any} />
             <span className="text-xs text-slate-400 font-medium truncate">
-              {event.targetGroup ? `Target: ${event.targetGroup}` : 'All Students'}
+              {event.targetGroup ? `กลุ่มเป้าหมาย: ${event.targetGroup}` : 'นักศึกษาทุกชั้นปี'}
             </span>
           </div>
 
@@ -119,7 +92,7 @@ export function EventCard({ event }: EventCardProps) {
             href={`/events/${event.id}`}
             className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/20 hover:border-indigo-500 text-indigo-300 hover:text-white font-medium text-xs transition-all duration-200"
           >
-            Details
+            ดูรายละเอียด
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>

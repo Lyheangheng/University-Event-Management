@@ -46,12 +46,12 @@ export default function EditEventPage() {
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
-      setError('Invalid file type. Only JPEG, PNG, and WebP image files are allowed.');
+      setError('ประเภทไฟล์ไม่ถูกต้อง อนุญาตเฉพาะไฟล์รูปภาพ JPEG, PNG และ WebP เท่านั้น');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('File size exceeds the 5MB maximum limit.');
+      setError('ขนาดไฟล์เกินขีดจำกัดสูงสุด 5MB');
       return;
     }
 
@@ -83,11 +83,11 @@ export default function EditEventPage() {
 
     for (const f of files) {
       if (!allowedTypes.includes(f.type.toLowerCase())) {
-        setError(`File "${f.name}" has an invalid type. Only JPEG, PNG, and WebP are allowed.`);
+        setError(`ไฟล์ "${f.name}" มีประเภทไม่ถูกต้อง อนุญาตเฉพาะ JPEG, PNG และ WebP เท่านั้น`);
         return;
       }
       if (f.size > 5 * 1024 * 1024) {
-        setError(`File "${f.name}" exceeds the 5MB maximum limit.`);
+        setError(`ไฟล์ "${f.name}" มีขนาดเกินขีดจำกัดสูงสุด 5MB`);
         return;
       }
       validFiles.push(f);
@@ -149,14 +149,14 @@ export default function EditEventPage() {
       setStartTime(formatTimeForInput(eventData.startTime));
       setEndTime(formatTimeForInput(eventData.endTime));
       setLocation(eventData.location);
-      setTargetGroup(eventData.targetGroup || 'All Students');
+      setTargetGroup(eventData.targetGroup || 'นักศึกษาทุกชั้นปี');
       setImageUrl(eventData.imageUrl || '');
       setExistingImages(eventData.images || []);
     } catch (err: any) {
       if (err.message === 'EVENT_NOT_FOUND') {
         setError('EVENT_NOT_FOUND');
       } else {
-        setError(err.message || 'Failed to load event for editing.');
+        setError(err.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมสำหรับการแก้ไขได้');
       }
     } finally {
       setInitialLoading(false);
@@ -177,7 +177,7 @@ export default function EditEventPage() {
     }
 
     if (!title.trim() || !description.trim() || !date || !startTime || !endTime || !location.trim() || !targetGroup.trim()) {
-      setError('Please fill in all required fields.');
+      setError('กรุณากรอกข้อมูลในช่องที่จำเป็นให้ครบถ้วน');
       return;
     }
 
@@ -187,12 +187,12 @@ export default function EditEventPage() {
     const dateISO = new Date(`${date}T00:00:00`);
 
     if (isNaN(startISO.getTime()) || isNaN(endISO.getTime()) || isNaN(dateISO.getTime())) {
-      setError('Invalid date or time values provided.');
+      setError('วันที่หรือเวลาที่ระบุไม่ถูกต้อง');
       return;
     }
 
     if (endISO <= startISO) {
-      setError('End time must be after start time.');
+      setError('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น');
       return;
     }
 
@@ -242,7 +242,7 @@ export default function EditEventPage() {
         localStorage.removeItem('admin_access_token');
         router.replace(`/admin/login?redirect=/admin/events/${id}/edit`);
       } else {
-        setError(err.message || 'Failed to update event.');
+        setError(err.message || 'ไม่สามารถอัปเดตข้อมูลกิจกรรมได้');
       }
     } finally {
       setSubmitting(false);
@@ -252,7 +252,7 @@ export default function EditEventPage() {
   if (!token || initialLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-slate-400 text-sm animate-pulse">
-        Loading event details...
+        กำลังโหลดข้อมูลกิจกรรม...
       </div>
     );
   }
@@ -264,16 +264,16 @@ export default function EditEventPage() {
           ⚠️
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-black text-slate-100">Event Not Found</h1>
+          <h1 className="text-2xl font-black text-slate-100">ไม่พบกิจกรรม</h1>
           <p className="text-slate-400 text-sm">
-            The event requested for editing does not exist.
+            ไม่พบกิจกรรมที่ต้องการแก้ไข
           </p>
         </div>
         <Link
           href="/admin"
           className="inline-block py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
         >
-          Return to Admin Dashboard
+          กลับสู่แผงควบคุมผู้ดูแลระบบ
         </Link>
       </div>
     );
@@ -285,17 +285,17 @@ export default function EditEventPage() {
       <div className="flex items-center justify-between border-b border-slate-800 pb-6">
         <div className="space-y-1">
           <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-black uppercase tracking-widest">
-            ADMINISTRATOR CONSOLE
+            ระบบจัดการสำหรับผู้ดูแลระบบ
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-100 tracking-tight">
-            Edit University Event
+            แก้ไขกิจกรรมมหาวิทยาลัย
           </h1>
         </div>
         <Link
           href="/admin"
           className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all"
         >
-          ← Cancel
+          ← ยกเลิก
         </Link>
       </div>
 
@@ -310,7 +310,7 @@ export default function EditEventPage() {
         {/* Title */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-            Event Title <span className="text-rose-400">*</span>
+            ชื่อกิจกรรม <span className="text-rose-400">*</span>
           </label>
           <input
             type="text"
@@ -324,7 +324,7 @@ export default function EditEventPage() {
         {/* Description */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-            Event Description <span className="text-rose-400">*</span>
+            รายละเอียดกิจกรรม <span className="text-rose-400">*</span>
           </label>
           <textarea
             required
@@ -339,7 +339,7 @@ export default function EditEventPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              Event Date <span className="text-rose-400">*</span>
+              วันที่จัดกิจกรรม <span className="text-rose-400">*</span>
             </label>
             <input
               type="date"
@@ -352,7 +352,7 @@ export default function EditEventPage() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              Start Time <span className="text-rose-400">*</span>
+              เวลาเริ่มต้น <span className="text-rose-400">*</span>
             </label>
             <input
               type="time"
@@ -365,7 +365,7 @@ export default function EditEventPage() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              End Time <span className="text-rose-400">*</span>
+              เวลาสิ้นสุด <span className="text-rose-400">*</span>
             </label>
             <input
               type="time"
@@ -381,7 +381,7 @@ export default function EditEventPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              Location <span className="text-rose-400">*</span>
+              สถานที่จัดกิจกรรม <span className="text-rose-400">*</span>
             </label>
             <input
               type="text"
@@ -394,7 +394,7 @@ export default function EditEventPage() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              Target Group <span className="text-rose-400">*</span>
+              กลุ่มเป้าหมาย <span className="text-rose-400">*</span>
             </label>
             <input
               type="text"
@@ -410,9 +410,9 @@ export default function EditEventPage() {
         <div className="space-y-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              Event Banner Image <span className="text-slate-500 font-normal">(Optional)</span>
+              ภาพแบนเนอร์กิจกรรม <span className="text-slate-500 font-normal">(ไม่บังคับ)</span>
             </label>
-            <span className="text-[10px] text-slate-500 font-medium">JPEG, PNG, WebP (Max 5MB)</span>
+            <span className="text-[10px] text-slate-500 font-medium">JPEG, PNG, WebP (สูงสุด 5MB)</span>
           </div>
 
           {/* Current Banner or New Preview */}
@@ -421,12 +421,12 @@ export default function EditEventPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={bannerPreview || imageUrl}
-                alt="Banner Preview"
+                alt="ภาพตัวอย่างแบนเนอร์"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                 <label className="cursor-pointer px-4 py-2 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white font-bold text-xs transition-all shadow-lg">
-                  <span>🔄 Replace Banner</span>
+                  <span>🔄 เปลี่ยนภาพแบนเนอร์</span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/jpg"
@@ -439,14 +439,14 @@ export default function EditEventPage() {
                   onClick={handleRemoveBanner}
                   className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs transition-all shadow-lg"
                 >
-                  🗑️ Remove Banner
+                  🗑️ ลบภาพแบนเนอร์
                 </button>
               </div>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <label className="w-full sm:w-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 font-bold text-xs transition-all">
-                <span>📁 Select Image File</span>
+                <span>📁 เลือกไฟล์รูปภาพ</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/jpg"
@@ -461,7 +461,7 @@ export default function EditEventPage() {
                     📄 {bannerFile.name} ({(bannerFile.size / 1024 / 1024).toFixed(2)} MB)
                   </span>
                 ) : (
-                  <span>No banner attached. Select an image file or enter a URL below</span>
+                  <span>ยังไม่ได้แนบภาพแบนเนอร์ เลือกไฟล์รูปภาพเพื่ออัปโหลด</span>
                 )}
               </div>
             </div>
@@ -472,8 +472,8 @@ export default function EditEventPage() {
         <div className="space-y-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block flex items-center gap-2">
-              <span>📸 Event Photos Gallery</span>
-              <span className="text-slate-500 font-normal">({existingImages.length + newGalleryFiles.length} total)</span>
+              <span>📸 คลังรูปภาพกิจกรรม</span>
+              <span className="text-slate-500 font-normal">(ทั้งหมด {existingImages.length + newGalleryFiles.length} ภาพ)</span>
             </label>
             <span className="text-[10px] text-slate-500 font-medium">JPEG, PNG, WebP</span>
           </div>
@@ -481,7 +481,7 @@ export default function EditEventPage() {
           {/* Existing Gallery Photos Grid */}
           {existingImages.length > 0 && (
             <div className="space-y-2">
-              <span className="text-[11px] font-semibold text-slate-400 block">Existing Gallery Photos</span>
+              <span className="text-[11px] font-semibold text-slate-400 block">รูปภาพในคลังปัจจุบัน</span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {existingImages.map((imgItem) => {
                   const resolvedUrl = getEventImageUrl(imgItem.imageUrl);
@@ -489,14 +489,14 @@ export default function EditEventPage() {
                   return (
                     <div key={imgItem.id} className="relative h-28 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={resolvedUrl} alt="Existing Gallery Photo" className="w-full h-full object-cover" />
+                      <img src={resolvedUrl} alt="รูปภาพในคลังปัจจุบัน" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <button
                           type="button"
                           onClick={() => handleDeleteExistingImage(imgItem.id)}
                           className="p-1.5 rounded-lg bg-rose-600 text-white font-bold text-[10px]"
                         >
-                          🗑️ Delete
+                          🗑️ ลบ
                         </button>
                       </div>
                     </div>
@@ -510,7 +510,7 @@ export default function EditEventPage() {
           <div className="space-y-2 pt-2 border-t border-slate-800/60">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <label className="w-full sm:w-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 font-bold text-xs transition-all">
-                <span>🖼️ Add New Photos</span>
+                <span>🖼️ เพิ่มรูปภาพใหม่</span>
                 <input
                   type="file"
                   multiple
@@ -520,7 +520,7 @@ export default function EditEventPage() {
                 />
               </label>
               <span className="text-xs text-slate-500">
-                {newGalleryFiles.length > 0 ? `${newGalleryFiles.length} new photo(s) queued` : 'Select photos to add to this event'}
+                {newGalleryFiles.length > 0 ? `รออัปโหลด ${newGalleryFiles.length} รูปภาพใหม่` : 'เลือกรูปภาพที่ต้องการเพิ่มในกิจกรรมนี้'}
               </span>
             </div>
 
@@ -530,14 +530,14 @@ export default function EditEventPage() {
                 {newGalleryPreviews.map((item, idx) => (
                   <div key={idx} className="relative h-28 rounded-xl overflow-hidden border border-indigo-500/50 bg-slate-950 group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.previewUrl} alt={`New gallery preview ${idx + 1}`} className="w-full h-full object-cover" />
+                    <img src={item.previewUrl} alt={`รูปภาพตัวอย่างใหม่ ${idx + 1}`} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <button
                         type="button"
                         onClick={() => handleRemoveNewGalleryFile(idx)}
                         className="p-1.5 rounded-lg bg-rose-600 text-white font-bold text-[10px]"
                       >
-                        ✕ Remove
+                        ✕ ลบออก
                       </button>
                     </div>
                   </div>
@@ -553,17 +553,18 @@ export default function EditEventPage() {
             href="/admin"
             className="px-6 py-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition-all"
           >
-            Cancel
+            ยกเลิก
           </Link>
           <button
             type="submit"
             disabled={submitting}
             className="px-8 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
           >
-            {submitting ? 'Updating Event...' : 'Save Changes'}
+            {submitting ? 'กำลังอัปเดตกิจกรรม...' : 'บันทึกการเปลี่ยนแปลง'}
           </button>
         </div>
       </form>
     </div>
   );
 }
+

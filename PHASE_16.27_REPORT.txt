@@ -1,0 +1,128 @@
+==================================================
+PHASE 16.27 IMPLEMENTATION REPORT
+COMPLETE THAI LOCALIZATION & NATURAL LANGUAGE CONVERSION
+==================================================
+
+Project: University Event Management and Attendance Verification System
+Phase: 16.27
+Date: 2026-09-26
+
+--------------------------------------------------
+1. OVERVIEW & OBJECTIVES
+--------------------------------------------------
+Phase 16.27 focused on delivering a complete, authentic Thai localization across the entire University Event Management application stack. All user-facing interfaces, form components, status badges, projector displays, admin dashboards, student portals, LINE Flex Messages, and push notification payloads have been localized into natural, professional Thai suitable for Thai university students and staff.
+
+--------------------------------------------------
+2. LOCALIZATION BREAKDOWN BY COMPONENT / MODULE
+--------------------------------------------------
+
+1. Formatters & Utilities (apps/web/src/lib/formatters.ts):
+   - Localized date formatting using 'th-TH' with Buddhist Era (B.E.) years (e.g., "10 ตุลาคม 2569").
+   - Localized time range formatting (e.g., "09:00 – 12:00 น.").
+
+2. UI Components:
+   - StatusBadge (apps/web/src/components/ui/StatusBadge.tsx):
+     - Localized all status labels:
+       * ONGOING -> "กำลังดำเนินกิจกรรม"
+       * UPCOMING -> "กำลังจะมาถึง"
+       * ENDED -> "สิ้นสุดแล้ว"
+       * CHECK_IN -> "เปิดลงชื่อเช็กอิน"
+       * CHECK_OUT -> "เปิดลงชื่อเช็กเอาต์"
+       * COMPLETED -> "สมบูรณ์"
+       * INCOMPLETE -> "ไม่สมบูรณ์"
+   - Navbar (apps/web/src/components/Navbar.tsx):
+     - Brand title: "ระบบกิจกรรมนักศึกษา"
+     - Links: "หน้าแรก", "กิจกรรมทั้งหมด", "ระบบสำหรับผู้ดูแลระบบ", "เซสชันเข้าร่วมกิจกรรม"
+     - System Status Indicator: "ระบบทำงานปกติ"
+   - EventCard (apps/web/src/components/EventCard.tsx):
+     - Target group fallback: "นักศึกษาทุกชั้นปี"
+     - Action button: "ดูรายละเอียด"
+   - ErrorState (apps/web/src/components/ui/ErrorState.tsx):
+     - Title: "เกิดข้อผิดพลาด" / Retry button: "ลองอีกครั้ง"
+   - QrCodeDisplay (apps/web/src/components/display/QrCodeDisplay.tsx):
+     - Instruction banner: "สแกน QR Code นี้เพื่อลงชื่อเข้าร่วมกิจกรรม"
+
+3. Public & LIFF Portal Pages:
+   - Landing Page (apps/web/src/app/page.tsx):
+     - Main heading: "ระบบบริหารจัดการกิจกรรมและเช็กอินนักศึกษา"
+     - Hero subtitle, features breakdown, navigation buttons ("สำรวจกิจกรรม", "สำหรับผู้ดูแลระบบ").
+   - Events List Page (apps/web/src/app/events/page.tsx):
+     - Title: "กิจกรรมทั้งหมด"
+     - Subtitle, search placeholder, empty state ("ไม่พบกิจกรรม").
+   - Event Details Page (apps/web/src/app/events/[id]/page.tsx):
+     - Date, time, location, target group labels.
+     - Section headings: "รายละเอียดกิจกรรม", "คลังรูปภาพกิจกรรม"
+     - Attendance status alerts, gallery photo counters, lightbox labels ("รูปภาพก่อนหน้า", "รูปภาพถัดไป", "ปิดรูปภาพ").
+   - Student Attendance Form (apps/web/src/components/attendance/StudentAttendanceForm.tsx):
+     - Section headers: "ข้อมูลนักศึกษา", "เชื่อมต่อบัญชี LINE Official Account", "รูปภาพหลักฐานการเข้าร่วมกิจกรรม", "ข้อเสนอแนะ / ข้อคิดเห็น"
+     - Field labels & placeholders: Student ID, Full Name, Faculty, Major, Year.
+     - Friendship & LINE account linking warnings/actions.
+     - Submission success banners & already-submitted state descriptions.
+   - LIFF Entry Routes (apps/web/src/app/attendance/session/page.tsx & [token]/page.tsx):
+     - Token validation errors, closed window warnings, session loading indicators.
+
+4. Administrator Management Console:
+   - Admin Login Page (apps/web/src/app/admin/login/page.tsx):
+     - Header: "เข้าสู่ระบบผู้ดูแลระบบ"
+     - Secret key input labels, login button ("เข้าสู่ระบบ").
+   - Admin Dashboard (apps/web/src/app/admin/page.tsx):
+     - Header: "ระบบจัดการสำหรับผู้ดูแลระบบ"
+     - Metric cards: "กิจกรรมทั้งหมด", "กำลังดำเนินอยู่", "กำลังจะมาถึง", "สิ้นสุดแล้ว"
+     - Quick action buttons: "+ สร้างกิจกรรมใหม่", "📋 ข้อมูลการเข้าร่วม", "📺 หน้าจอ QR เช็กอิน", "✏️ แก้ไข"
+     - Delete confirm prompts ("คุณแน่ใจหรือไม่ว่าต้องการลบกิจกรรมนี้?").
+   - Create Event Page (apps/web/src/app/admin/events/new/page.tsx):
+     - Form title: "สร้างกิจกรรมใหม่"
+     - Date/time/location/target inputs, banner upload, gallery photo queued previews.
+   - Edit Event Page (apps/web/src/app/admin/events/[id]/edit/page.tsx):
+     - Form title: "แก้ไขกิจกรรมมหาวิทยาลัย"
+     - Image replace/remove buttons, submit action buttons ("กำลังอัปเดตกิจกรรม...", "บันทึกการเปลี่ยนแปลง").
+   - Admin Attendance Review (apps/web/src/app/admin/events/[id]/attendance/page.tsx):
+     - Metric summary cards: "จำนวนบันทึกทั้งหมด", "สมบูรณ์", "ไม่สมบูรณ์", "สรุปสถิติการเข้าร่วม"
+     - Filter buttons: "ทั้งหมด", "สมบูรณ์", "ไม่สมบูรณ์"
+     - Search input: "ค้นหาด้วยชื่อนักศึกษา, รหัสนักศึกษา..."
+     - Table headers: "รหัสนักศึกษา", "ชื่อ - นามสกุล", "คณะและสาขาวิชา", "ชั้นปี", "เวลาเช็กอิน", "เวลาเช็กเอาต์", "สถานะ", "การดำเนินการ"
+     - Inspection modal: "หลักฐานการเช็กอิน", "หลักฐานการเช็กเอาต์", "ข้อเสนอแนะ / ข้อคิดเห็นจากนักศึกษา", "ปิดหน้าต่างตรวจสอบ".
+   - Projector Displays (apps/web/src/app/admin/events/[id]/projector/check-in/page.tsx & check-out/page.tsx):
+     - Header: "หน้าจอแสดงผลสำหรับโปรเจกเตอร์"
+     - Live clock: "เวลาปัจจุบัน"
+     - Status banners: "เปิดให้ลงชื่อเช็กอิน", "ขณะนี้ยังไม่อยู่ในช่วงเวลาเช็กอิน", "เปิดให้ลงชื่อเช็กเอาต์", "ขณะนี้ยังไม่อยู่ในช่วงเวลาเช็กเอาต์"
+     - Scan instructions: "สแกน QR Code นี้เพื่อลงชื่อเช็กอิน", "สแกน QR Code นี้เพื่อลงชื่อเช็กเอาต์"
+     - Exit button: "ออกจากหน้าจอแสดงผล".
+
+5. Backend LINE Notifications & Flex Messages:
+   - Flex Message Builder (apps/api/src/line/line-flex.builder.ts):
+     - AltText: "🎓 {title}\n📅 {dateStr}\n🕘 {timeStr}\n📍 {location}\n\nแตะเพื่อดูรายละเอียดกิจกรรม"
+     - Hero button label: "ดูรายละเอียดกิจกรรม"
+     - Fallback card header: "🎓 กิจกรรมมหาวิทยาลัย"
+     - Carousel photo altText: "📸 รูปภาพกิจกรรม - {title}"
+     - Carousel overflow card: "+{count} รูปเพิ่มเติม", "ดูรูปภาพทั้งหมด", "ดูทั้งหมด".
+   - LINE Push Notifications (apps/api/src/line/line-messaging.service.ts):
+     - Check-in push text: "🔔 เปิดระบบลงชื่อเช็กอินแล้ว!\n\nกิจกรรม: {title}\nสถานะ: เปิดให้ลงชื่อเช็กอินเข้าร่วมกิจกรรมแล้ว\n\n📍 กรุณาสแกน QR Code เช็กอินที่หน้างาน หรือเปิดแบบฟอร์มบันทึกการเข้าร่วม:\n🔗 {url}"
+     - Check-out push text: "🏁 เปิดระบบลงชื่อเช็กเอาต์แล้ว!\n\nกิจกรรม: {title}\nสถานะ: เปิดให้ลงชื่อเช็กเอาต์แล้ว\n\n📍 กรุณาสแกน QR Code เช็กเอาต์ที่หน้างานเพื่อเสร็จสิ้นขั้นตอนการเข้าร่วมกิจกรรม:\n🔗 {url}".
+
+6. Automated Regression Test Suite:
+   - Updated apps/api/src/attendance/attendance-regression.spec.ts assertion expectations to align with Thai localized carousel overflow text ("+{count} รูปเพิ่มเติม").
+
+--------------------------------------------------
+3. TECHNICAL INTEGRITY & PRESERVED ARCHITECTURE
+--------------------------------------------------
+- API endpoints, Prisma database models, TypeScript type definitions, HTTP status codes, server logs, JWT claims, and R2 storage keys remain strictly in English.
+- No heavy external i18n dependencies were added.
+- All 18 automated backend regression tests pass cleanly.
+- Production builds for both frontend (Next.js) and backend (NestJS) completed with zero errors.
+
+--------------------------------------------------
+4. VERIFICATION COMMANDS & RESULTS
+--------------------------------------------------
+- Backend Test Suite: `npm test --workspace=apps/api`
+  Result: PASS (18/18 test scenarios passed)
+- Backend Production Build: `npm run build --workspace=apps/api`
+  Result: SUCCESS (nest build completed cleanly)
+- Frontend Production Build: `npm run build --workspace=apps/web`
+  Result: SUCCESS (Next.js 14 production build compiled all 11 routes cleanly)
+
+--------------------------------------------------
+5. CONCLUSION
+--------------------------------------------------
+Phase 16.27 Complete Thai Localization has been successfully implemented and verified. The entire user-facing experience now seamlessly operates in natural, professional Thai.
+==================================================

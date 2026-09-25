@@ -23,12 +23,12 @@ export default function AttendanceSessionPage() {
       setSessionData(data);
     } catch (err: any) {
       if (err.message === 'SESSION_NOT_FOUND') {
-        setError('Session token not found or invalid.');
+        setError('ไม่พบรหัสรอบการลงชื่อหรือ QR Code ไม่ถูกต้อง');
       } else if (err.message === 'SESSION_EXPIRED') {
-        setError('Attendance session has expired or is not yet active.');
+        setError('หมดเวลาสำหรับการลงชื่อเข้าร่วม หรือยังไม่ถึงช่วงเวลาลงชื่อ');
       } else {
         console.error('Session validation error:', err);
-        setError('Unable to validate attendance session. Please check your connection and try again.');
+        setError('ไม่สามารถตรวจสอบรอบการลงชื่อได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่อีกครั้ง');
       }
     } finally {
       setLoading(false);
@@ -41,13 +41,13 @@ export default function AttendanceSessionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4 font-sans">
         <div className="w-16 h-16 rounded-full bg-indigo-500/20 border-2 border-indigo-500/40 flex items-center justify-center animate-spin">
           <div className="w-8 h-8 rounded-full border-4 border-indigo-400 border-t-transparent" />
         </div>
         <div className="text-center space-y-1">
-          <h2 className="text-lg font-bold text-slate-200">Verifying session...</h2>
-          <p className="text-sm text-slate-400">Please wait while we validate your QR code.</p>
+          <h2 className="text-lg font-bold text-slate-200">กำลังตรวจสอบรอบการลงชื่อ...</h2>
+          <p className="text-sm text-slate-400">กรุณารอสักครู่ขณะระบบกำลังตรวจสอบ QR Code</p>
         </div>
       </div>
     );
@@ -55,17 +55,17 @@ export default function AttendanceSessionPage() {
 
   if (error || !sessionData) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 select-none">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 select-none font-sans">
         <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl">
           <div className="w-16 h-16 mx-auto rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 text-2xl font-bold">
             ✕
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-slate-100">
-              Attendance Session Invalid
+              รอบการลงชื่อเข้าร่วมกิจกรรมไม่ถูกต้อง
             </h1>
             <p className="text-slate-400 text-sm">
-              {error || 'This QR session code is no longer active.'}
+              {error || 'รหัส QR Code นี้ไม่สามารถใช้งานได้ในขณะนี้'}
             </p>
           </div>
 
@@ -74,7 +74,7 @@ export default function AttendanceSessionPage() {
               href="/events"
               className="inline-block w-full py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
             >
-              Return to Events
+              กลับไปยังรายการกิจกรรม
             </Link>
           </div>
         </div>
@@ -84,17 +84,17 @@ export default function AttendanceSessionPage() {
 
   if (!sessionData.isValid) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 select-none">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 select-none font-sans">
         <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl">
           <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl font-bold">
             ⏳
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-slate-100">
-              {sessionData.sessionType === 'CHECK_IN' ? 'Check-in is currently closed.' : 'Check-out is currently closed.'}
+              {sessionData.sessionType === 'CHECK_IN' ? 'ขณะนี้ปิดการลงชื่อเข้าร่วมกิจกรรม (เช็กอิน)' : 'ขณะนี้ปิดการลงชื่อออกจากกิจกรรม (เช็กเอาต์)'}
             </h1>
             <p className="text-slate-400 text-sm">
-              Please wait until the attendance window opens or check the event schedule.
+              กรุณารอจนกว่าจะถึงช่วงเวลาลงชื่อเข้าร่วม หรือตรวจสอบกำหนดการกิจกรรม
             </p>
           </div>
 
@@ -103,7 +103,7 @@ export default function AttendanceSessionPage() {
               href={`/events/${sessionData.eventId}`}
               className="inline-block w-full py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all"
             >
-              View Event Details
+              ดูรายละเอียดกิจกรรม
             </Link>
           </div>
         </div>

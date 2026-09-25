@@ -18,13 +18,13 @@ export interface FlexMessageBuildResult {
 }
 
 /**
- * Formats a Date object or ISO string into human-readable date format (e.g. "10 October 2026")
+ * Formats a Date object or ISO string into human-readable Thai date format (e.g. "10 ตุลาคม 2569")
  */
 function formatDateString(val: Date | string): string {
   try {
     const d = new Date(val);
     if (isNaN(d.getTime())) return String(val);
-    return d.toLocaleDateString('en-GB', {
+    return d.toLocaleDateString('th-TH', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -35,7 +35,7 @@ function formatDateString(val: Date | string): string {
 }
 
 /**
- * Formats start and end time into "09:00 – 12:00"
+ * Formats start and end time into "09:00 – 12:00 น."
  */
 function formatTimeRangeString(startVal: Date | string, endVal: Date | string): string {
   try {
@@ -45,12 +45,12 @@ function formatTimeRangeString(startVal: Date | string, endVal: Date | string): 
       return `${startVal} – ${endVal}`;
     }
     const fmt = (d: Date) =>
-      d.toLocaleTimeString('en-GB', {
+      d.toLocaleTimeString('th-TH', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
       });
-    return `${fmt(start)} – ${fmt(end)}`;
+    return `${fmt(start)} – ${fmt(end)} น.`;
   } catch {
     return `${startVal} – ${endVal}`;
   }
@@ -101,7 +101,7 @@ export function buildEventAnnouncementFlexMessages(
     : null;
 
   // Useful altText for notification banner
-  const altText = `🎓 ${event.title}\n📅 ${dateStr}\n🕘 ${timeStr}\n📍 ${event.location}\n\nTap to view event details.`;
+  const altText = `🎓 ${event.title}\n📅 ${dateStr}\n🕘 ${timeStr}\n📍 ${event.location}\n\nแตะเพื่อดูรายละเอียดกิจกรรม`;
 
   // Build Hero component if primary image exists
   const heroComponent = primaryImageUrl
@@ -113,7 +113,7 @@ export function buildEventAnnouncementFlexMessages(
         aspectMode: 'cover',
         action: {
           type: 'uri',
-          label: 'View Event',
+          label: 'ดูรายละเอียดกิจกรรม',
           uri: eventUrl,
         },
       }
@@ -134,7 +134,7 @@ export function buildEventAnnouncementFlexMessages(
       contents: [
         {
           type: 'text',
-          text: '🎓 UNIVERSITY EVENT',
+          text: '🎓 กิจกรรมมหาวิทยาลัย',
           color: '#FFFFFF',
           weight: 'bold',
           size: 'xs',
@@ -227,7 +227,7 @@ export function buildEventAnnouncementFlexMessages(
             color: '#06C755',
             action: {
               type: 'uri',
-              label: 'View Event',
+              label: 'ดูรายละเอียดกิจกรรม',
               uri: eventUrl,
             },
           },
@@ -269,7 +269,7 @@ export function buildEventAnnouncementFlexMessages(
             aspectMode: 'cover',
             action: {
               type: 'uri',
-              label: 'View Photo',
+              label: 'ดูรูปภาพ',
               uri: eventUrl,
             },
           },
@@ -288,7 +288,7 @@ export function buildEventAnnouncementFlexMessages(
             contents: [
               {
                 type: 'text',
-                text: `+${validGalleryUrls.length - photoDisplayLimit} More`,
+                text: `+${validGalleryUrls.length - photoDisplayLimit} รูปเพิ่มเติม`,
                 weight: 'bold',
                 size: 'sm',
                 color: '#06C755',
@@ -296,7 +296,7 @@ export function buildEventAnnouncementFlexMessages(
               },
               {
                 type: 'text',
-                text: 'View All Photos',
+                text: 'ดูรูปภาพทั้งหมด',
                 size: 'xs',
                 color: '#888888',
                 align: 'center',
@@ -305,7 +305,7 @@ export function buildEventAnnouncementFlexMessages(
             ],
             action: {
               type: 'uri',
-              label: 'View All',
+              label: 'ดูทั้งหมด',
               uri: eventUrl,
             },
           },
@@ -314,7 +314,7 @@ export function buildEventAnnouncementFlexMessages(
 
       const activitiesCarouselMessage = {
         type: 'flex',
-        altText: `📸 Activities - ${event.title}`,
+        altText: `📸 รูปภาพกิจกรรม - ${event.title}`,
         contents: {
           type: 'carousel',
           contents: photoBubbles,
@@ -327,3 +327,4 @@ export function buildEventAnnouncementFlexMessages(
 
   return { altText, messages };
 }
+

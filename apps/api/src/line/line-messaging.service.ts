@@ -138,7 +138,7 @@ export class LineMessagingService {
 
     const textMessage = {
       type: 'text',
-      text: `🔔 Check-In Window Open!\n\nEvent: ${event.title}\nStatus: Check-in attendance is now active.\n\n📍 Please scan the Check-In QR code displayed at the venue or open your form:\n🔗 ${attendanceUrl}`,
+      text: `🔔 เปิดระบบลงชื่อเช็กอินแล้ว!\n\nกิจกรรม: ${event.title}\nสถานะ: เปิดให้ลงชื่อเช็กอินเข้าร่วมกิจกรรมแล้ว\n\n📍 กรุณาสแกน QR Code เช็กอินที่หน้างาน หรือเปิดแบบฟอร์มบันทึกการเข้าร่วม:\n🔗 ${attendanceUrl}`,
     };
 
     let deliveredCount = 0;
@@ -180,7 +180,7 @@ export class LineMessagingService {
 
     const textMessage = {
       type: 'text',
-      text: `🏁 Check-Out Window Open!\n\nEvent: ${event.title}\nStatus: Check-out attendance is now active.\n\n📍 Please scan the Check-Out QR code displayed at the venue to complete your attendance:\n🔗 ${attendanceUrl}`,
+      text: `🏁 เปิดระบบลงชื่อเช็กเอาต์แล้ว!\n\nกิจกรรม: ${event.title}\nสถานะ: เปิดให้ลงชื่อเช็กเอาต์แล้ว\n\n📍 กรุณาสแกน QR Code เช็กเอาต์ที่หน้างานเพื่อเสร็จสิ้นขั้นตอนการเข้าร่วมกิจกรรม:\n🔗 ${attendanceUrl}`,
     };
 
     let deliveredCount = 0;
@@ -194,3 +194,4 @@ export class LineMessagingService {
     return deliveredCount;
   }
 }
+

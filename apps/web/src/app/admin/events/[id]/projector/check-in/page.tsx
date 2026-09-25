@@ -48,7 +48,7 @@ export default function CheckInProjectorDisplayPage() {
       } else if (err.message === 'EVENT_NOT_FOUND') {
         setError('NOT_FOUND');
       } else {
-        setError('Unable to load event details or session for display.');
+        setError('ไม่สามารถโหลดข้อมูลกิจกรรมหรือเซสชันการแสดงผลได้');
       }
     } finally {
       setLoading(false);
@@ -79,20 +79,20 @@ export default function CheckInProjectorDisplayPage() {
 
   if (error === 'NOT_FOUND' || !event) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <h1 className="text-3xl font-extrabold text-slate-200">Event Not Found</h1>
-        <p className="text-slate-400 max-w-md">The requested event display could not be loaded.</p>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
+        <h1 className="text-3xl font-extrabold text-slate-200">ไม่พบกิจกรรม</h1>
+        <p className="text-slate-400 max-w-md">ไม่สามารถโหลดข้อมูลการแสดงผลกิจกรรมที่ร้องขอได้</p>
         <Link
           href="/admin"
           className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors"
         >
-          Back to Dashboard
+          กลับสู่แผงควบคุม
         </Link>
       </div>
     );
   }
 
-  const formattedLiveClock = currentTime.toLocaleTimeString('en-GB', {
+  const formattedLiveClock = currentTime.toLocaleTimeString('th-TH', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -111,18 +111,18 @@ export default function CheckInProjectorDisplayPage() {
         <div className="flex items-center gap-3">
           <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
           <span className="text-xs sm:text-sm font-semibold tracking-wider uppercase text-indigo-400">
-            ADMIN PROJECTOR DISPLAY
+            หน้าจอแสดงผลสำหรับโปรเจกเตอร์
           </span>
         </div>
         <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs sm:text-sm font-mono text-slate-300">
-          <span className="text-slate-500 font-sans">Current time</span>
+          <span className="text-slate-500 font-sans">เวลาปัจจุบัน</span>
           <span className="font-bold text-slate-100">{formattedLiveClock}</span>
         </div>
         <Link
           href={`/admin/events/${event.id}/attendance`}
           className="text-xs text-slate-400 hover:text-slate-200 transition-colors underline underline-offset-4"
         >
-          Exit Projector View
+          ออกจากหน้าจอแสดงผล
         </Link>
       </header>
 
@@ -140,14 +140,14 @@ export default function CheckInProjectorDisplayPage() {
           <div className="space-y-6 text-center md:text-left">
             {isOpen ? (
               <div className="inline-block px-6 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xl sm:text-3xl font-black uppercase tracking-widest shadow-lg">
-                CHECK-IN IS OPEN
+                เปิดให้ลงชื่อเช็กอิน
               </div>
             ) : (
               <div className="inline-block px-6 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xl sm:text-3xl font-black uppercase tracking-widest shadow-lg">
-                CHECK-IN IS NOT CURRENTLY OPEN
+                ขณะนี้ยังไม่อยู่ในช่วงเวลาเช็กอิน
               </div>
             )}
-            <p className="text-slate-300">Scan this QR code to check in</p>
+            <p className="text-slate-300">สแกน QR Code นี้เพื่อลงชื่อเช็กอิน</p>
           </div>
           
           {session && (
@@ -161,3 +161,4 @@ export default function CheckInProjectorDisplayPage() {
     </div>
   );
 }
+

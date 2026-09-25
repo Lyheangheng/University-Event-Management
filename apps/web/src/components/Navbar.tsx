@@ -29,10 +29,10 @@ export function Navbar() {
             </div>
             <div>
               <span className="font-extrabold text-slate-100 text-sm sm:text-base tracking-tight block">
-                University Events
+                ระบบกิจกรรมนักศึกษา
               </span>
               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest block -mt-1">
-                Attendance System
+                ระบบลงชื่อเข้าร่วมกิจกรรม
               </span>
             </div>
           </Link>
@@ -47,7 +47,7 @@ export function Navbar() {
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              Events Portal
+              รายการกิจกรรม
             </Link>
 
             <Link
@@ -58,7 +58,7 @@ export function Navbar() {
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              Overview
+              หน้าแรก
             </Link>
           </div>
 
@@ -66,7 +66,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              System Active
+              ระบบพร้อมใช้งาน
             </div>
           </div>
 
@@ -75,7 +75,7 @@ export function Navbar() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none"
-              aria-label="Toggle Navigation Menu"
+              aria-label="เมนูหลัก"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mobileMenuOpen ? (
@@ -99,7 +99,7 @@ export function Navbar() {
               isActive('/events') ? 'bg-indigo-600/20 text-indigo-300' : 'text-slate-300 hover:bg-slate-800'
             }`}
           >
-            Events Portal
+            รายการกิจกรรม
           </Link>
 
           <Link
@@ -109,12 +109,12 @@ export function Navbar() {
               pathname === '/' ? 'bg-indigo-600/20 text-indigo-300' : 'text-slate-300 hover:bg-slate-800'
             }`}
           >
-            Overview
+            หน้าแรก
           </Link>
 
           <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 px-2">
-            <span>Status</span>
-            <span className="text-emerald-400 font-semibold">● Operational</span>
+            <span>สถานะระบบ</span>
+            <span className="text-emerald-400 font-semibold">● เปิดใช้งานปกติ</span>
           </div>
         </div>
       )}

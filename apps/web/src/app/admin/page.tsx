@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
       const data = await fetchEvents();
       setEvents(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load events list');
+      setError(err.message || 'ไม่สามารถโหลดรายการกิจกรรมได้');
     } finally {
       setLoading(false);
     }
@@ -54,7 +54,7 @@ export default function AdminDashboardPage() {
 
   const handleDelete = async (id: string, title: string) => {
     if (!token) return;
-    if (!window.confirm(`Are you sure you want to delete event "${title}"? This action cannot be undone.`)) {
+    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบกิจกรรม "${title}"? การดำเนินการนี้ไม่สามารถยกเลิกได้`)) {
       return;
     }
 
@@ -67,7 +67,7 @@ export default function AdminDashboardPage() {
         localStorage.removeItem('admin_access_token');
         router.replace('/admin/login');
       } else {
-        alert(err.message || 'Failed to delete event');
+        alert(err.message || 'ไม่สามารถลบกิจกรรมได้');
       }
     } finally {
       setDeletingId(null);
@@ -76,9 +76,9 @@ export default function AdminDashboardPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans">
         <div className="text-slate-400 text-sm font-medium animate-pulse">
-          Verifying administrator session...
+          กำลังตรวจสอบสิทธิ์ผู้ดูแลระบบ...
         </div>
       </div>
     );
@@ -91,14 +91,14 @@ export default function AdminDashboardPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-black uppercase tracking-widest">
-              ADMINISTRATOR PORTAL
+              ระบบผู้ดูแลระบบ
             </span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-slate-100 tracking-tight">
-            Event Management Console
+            ศูนย์ควบคุมการจัดการกิจกรรม
           </h1>
           <p className="text-xs sm:text-sm text-slate-400">
-            Create, edit, and monitor university events, launch live venue projector displays, and manage attendance.
+            สร้าง แก้ไข และตรวจสอบกิจกรรมมหาวิทยาลัย เปิดหน้าจอ QR Code สำหรับสถานที่จัดงาน และจัดการข้อมูลการเข้าร่วมกิจกรรม
           </p>
         </div>
 
@@ -107,13 +107,13 @@ export default function AdminDashboardPage() {
             href="/admin/events/new"
             className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-1.5"
           >
-            <span>+</span> Create Event
+            <span>+</span> สร้างกิจกรรมใหม่
           </Link>
           <button
             onClick={handleLogout}
             className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs sm:text-sm font-bold transition-all"
           >
-            Sign Out
+            ออกจากระบบ
           </button>
         </div>
       </header>
@@ -122,14 +122,14 @@ export default function AdminDashboardPage() {
       <main className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-200">
-            University Events ({events.length})
+            รายการกิจกรรมมหาวิทยาลัย ({events.length})
           </h2>
           <button
             onClick={loadEvents}
             disabled={loading}
             className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold"
           >
-            Refresh List
+            รีเฟรชรายการ
           </button>
         </div>
 
@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
               onClick={loadEvents}
               className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-200"
             >
-              Retry
+              ลองอีกครั้ง
             </button>
           </div>
         ) : events.length === 0 ? (
@@ -154,14 +154,14 @@ export default function AdminDashboardPage() {
               📅
             </div>
             <div className="space-y-1">
-              <p className="text-base font-bold text-slate-300">No events found</p>
-              <p className="text-xs">Get started by creating your first university event.</p>
+              <p className="text-base font-bold text-slate-300">ไม่พบรายการกิจกรรม</p>
+              <p className="text-xs">เริ่มต้นโดยการสร้างกิจกรรมใหม่สำหรับมหาวิทยาลัย</p>
             </div>
             <Link
               href="/admin/events/new"
               className="inline-block px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md"
             >
-              + Create Event
+              + สร้างกิจกรรมใหม่
             </Link>
           </div>
         ) : (
@@ -177,7 +177,7 @@ export default function AdminDashboardPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge variant={status as any} />
                       <span className="text-xs text-slate-500 font-mono">ID: {event.id}</span>
-                      <span className="text-xs text-slate-500">• Target: {event.targetGroup}</span>
+                      <span className="text-xs text-slate-500">• กลุ่มเป้าหมาย: {event.targetGroup || 'นักศึกษาทุกชั้นปี'}</span>
                     </div>
 
                     <h3 className="text-lg sm:text-xl font-extrabold text-slate-100">
@@ -195,37 +195,37 @@ export default function AdminDashboardPage() {
                       href={`/admin/events/${event.id}/edit`}
                       className="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-bold transition-all"
                     >
-                      ✏️ Edit
+                      ✏️ แก้ไข
                     </Link>
 
                     <Link
                       href={`/admin/events/${event.id}/attendance`}
                       className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
                     >
-                      📋 Manage Attendance
+                      📋 ข้อมูลการเข้าร่วม
                     </Link>
 
                     <Link
                       href={`/admin/events/${event.id}/projector/check-in`}
                       className="px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all"
                     >
-                      📺 Check-In Display
+                      📺 หน้าจอ QR เช็กอิน
                     </Link>
 
                     <Link
                       href={`/admin/events/${event.id}/projector/check-out`}
                       className="px-3.5 py-2 rounded-xl bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all"
                     >
-                      📺 Check-Out Display
+                      📺 หน้าจอ QR เช็กเอาต์
                     </Link>
 
                     <button
                       onClick={() => handleDelete(event.id, event.title)}
                       disabled={deletingId === event.id}
                       className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold transition-all disabled:opacity-50"
-                      title="Delete event"
+                      title="ลบกิจกรรม"
                     >
-                      {deletingId === event.id ? 'Deleting...' : '🗑️'}
+                      {deletingId === event.id ? 'กำลังลบ...' : '🗑️'}
                     </button>
                   </div>
                 </div>

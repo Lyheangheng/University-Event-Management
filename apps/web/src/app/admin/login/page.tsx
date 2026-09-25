@@ -34,10 +34,10 @@ function AdminLoginForm() {
         localStorage.setItem('admin_access_token', res.accessToken);
         router.push(redirectUrl);
       } else {
-        throw new Error('Authentication failed: No access token received');
+        throw new Error('ไม่ได้รับสิทธิ์การเข้าใช้งาน: ไม่พบรหัสผ่านสำหรับการยืนยันตัวตน');
       }
     } catch (err: any) {
-      setError(err.message || 'Invalid admin credentials');
+      setError('ชื่อผู้ใช้งานหรือรหัสผ่านผู้ดูแลระบบไม่ถูกต้อง');
     } finally {
       setLoading(false);
     }
@@ -52,10 +52,10 @@ function AdminLoginForm() {
             🔒
           </div>
           <h1 className="text-2xl font-black text-slate-100 tracking-tight">
-            Administrator Portal
+            ระบบผู้ดูแลระบบ
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm">
-            Sign in to access event management and student attendance controls.
+            เข้าสู่ระบบเพื่อจัดการกิจกรรมและตรวจสอบข้อมูลการเข้าร่วมของนักศึกษา
           </p>
         </div>
 
@@ -70,28 +70,28 @@ function AdminLoginForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              Username
+              ชื่อผู้ใช้งาน
             </label>
             <input
               type="text"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter admin username"
+              placeholder="กรอกชื่อผู้ใช้งานผู้ดูแลระบบ"
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600"
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-              Password
+              รหัสผ่าน
             </label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter admin password"
+              placeholder="กรอกรหัสผ่าน"
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600"
             />
           </div>
@@ -101,7 +101,7 @@ function AdminLoginForm() {
             disabled={loading}
             className="w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm tracking-wide transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
           >
-            {loading ? 'Authenticating...' : 'Sign In as Administrator'}
+            {loading ? 'กำลังยืนยันตัวตน...' : 'เข้าสู่ระบบผู้ดูแลระบบ'}
           </button>
         </form>
 
@@ -111,13 +111,13 @@ function AdminLoginForm() {
             href="/events"
             className="text-slate-400 hover:text-slate-200 transition-colors"
           >
-            ← Public Events Portal
+            ← หน้าแรกรายการกิจกรรม
           </Link>
           <Link
             href="/"
             className="text-slate-400 hover:text-slate-200 transition-colors"
           >
-            Home Overview
+            หน้าหลักระบบ
           </Link>
         </div>
       </div>
@@ -129,8 +129,8 @@ export default function AdminLoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-          <div className="text-slate-400 text-sm">Loading administrator login...</div>
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans">
+          <div className="text-slate-400 text-sm">กำลังโหลดหน้าระบบผู้ดูแลระบบ...</div>
         </div>
       }
     >

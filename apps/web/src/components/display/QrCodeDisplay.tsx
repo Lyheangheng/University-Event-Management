@@ -20,7 +20,7 @@ export function QrCodeDisplay({ sessionType, attendanceUrl }: QrCodeDisplayProps
       <div className="flex items-center gap-2">
         <span className={`w-2.5 h-2.5 rounded-full ${pulseColor} animate-ping`} />
         <span className={`px-4 py-1 rounded-full border text-xs font-black uppercase tracking-widest ${badgeBg}`}>
-          {isCheckIn ? 'CHECK-IN OPEN' : 'CHECK-OUT OPEN'}
+          {isCheckIn ? 'เปิดลงชื่อเช็กอิน' : 'เปิดลงชื่อเช็กเอาต์'}
         </span>
       </div>
 
@@ -38,7 +38,7 @@ export function QrCodeDisplay({ sessionType, attendanceUrl }: QrCodeDisplayProps
       {/* Instructions */}
       <div className="text-center space-y-1">
         <p className="text-sm font-bold text-slate-200">
-          Scan this QR code to continue attendance
+          สแกน QR Code นี้เพื่อลงชื่อเข้าร่วมกิจกรรม
         </p>
         <p className="text-xs text-slate-400 font-mono break-all max-w-[280px]">
           {attendanceUrl}

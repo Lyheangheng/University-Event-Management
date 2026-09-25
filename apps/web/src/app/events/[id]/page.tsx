@@ -35,7 +35,7 @@ export default function EventDetailPage() {
       if (err.message === 'EVENT_NOT_FOUND') {
         setError('NOT_FOUND');
       } else {
-        setError('Unable to load event details. Please try again.');
+        setError('ไม่สามารถโหลดข้อมูลรายละเอียดกิจกรรมได้ กรุณาลองใหม่อีกครั้ง');
       }
     } finally {
       setLoading(false);
@@ -69,9 +69,9 @@ export default function EventDetailPage() {
           </svg>
         </div>
         <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-100">Event Not Found</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-100">ไม่พบข้อมูลกิจกรรม</h1>
           <p className="text-xs sm:text-sm text-slate-400">
-            The requested university event does not exist or may have been removed.
+            กิจกรรมที่คุณค้นหาไม่มีอยู่ในระบบหรืออาจถูกลบออกไปแล้ว
           </p>
         </div>
         <Link
@@ -81,14 +81,14 @@ export default function EventDetailPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Events
+          กลับไปยังรายการกิจกรรม
         </Link>
       </div>
     );
   }
 
   if (error || !event) {
-    return <ErrorState title="Failed to Load Event" message={error || 'An unexpected error occurred.'} onRetry={loadEvent} />;
+    return <ErrorState title="ไม่สามารถโหลดข้อมูลกิจกรรมได้" message={error || 'เกิดข้อผิดพลาดที่ไม่คาดคิด'} onRetry={loadEvent} />;
   }
 
   const status = calculateEventStatus(event.startTime, event.endTime);
@@ -125,10 +125,11 @@ export default function EventDetailPage() {
             {/* Lightbox Header / Counter */}
             <div className="w-full flex items-center justify-between text-slate-300 text-xs font-semibold px-2">
               <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-emerald-400">
-                Photo {activeLightboxIndex + 1} of {galleryImages.length}
+                รูปภาพที่ {activeLightboxIndex + 1} จาก {galleryImages.length}
               </span>
               <button
                 onClick={() => setActiveLightboxIndex(null)}
+                aria-label="ปิดรูปภาพ"
                 className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold"
               >
                 ✕
@@ -140,7 +141,7 @@ export default function EventDetailPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={getEventImageUrl(galleryImages[activeLightboxIndex].imageUrl) || ''}
-                alt={`Photo ${activeLightboxIndex + 1}`}
+                alt={`รูปภาพกิจกรรมที่ ${activeLightboxIndex + 1}`}
                 className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-slate-800"
               />
             </div>
@@ -155,9 +156,10 @@ export default function EventDetailPage() {
                       prev === null || prev === 0 ? galleryImages.length - 1 : prev - 1
                     );
                   }}
+                  aria-label="รูปภาพก่อนหน้า"
                   className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium hover:bg-slate-800 transition-all flex items-center gap-1.5"
                 >
-                  ← Previous
+                  ← รูปภาพก่อนหน้า
                 </button>
                 <button
                   onClick={(e) => {
@@ -166,9 +168,10 @@ export default function EventDetailPage() {
                       prev === null || prev === galleryImages.length - 1 ? 0 : prev + 1
                     );
                   }}
+                  aria-label="รูปภาพถัดไป"
                   className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium hover:bg-slate-800 transition-all flex items-center gap-1.5"
                 >
-                  Next →
+                  รูปภาพถัดไป →
                 </button>
               </div>
             )}
@@ -183,8 +186,8 @@ export default function EventDetailPage() {
             🎓
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-200 block leading-tight">University Events</span>
-            <span className="text-[10px] text-slate-400 block">Official Event Feed</span>
+            <span className="text-xs font-bold text-slate-200 block leading-tight">กิจกรรมมหาวิทยาลัย</span>
+            <span className="text-[10px] text-slate-400 block">ข่าวสารกิจกรรมนักศึกษา</span>
           </div>
         </div>
         <Link
@@ -194,7 +197,7 @@ export default function EventDetailPage() {
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          All Events
+          กิจกรรมทั้งหมด
         </Link>
       </div>
 
@@ -217,8 +220,8 @@ export default function EventDetailPage() {
               🎓
             </div>
             <div>
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">University Event Post</span>
-              <span className="text-[11px] text-slate-400 block">Official Campus Announcement</span>
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">ข่าวสารกิจกรรมมหาวิทยาลัย</span>
+              <span className="text-[11px] text-slate-400 block">ประกาศกิจกรรมอย่างเป็นทางการ</span>
             </div>
           </div>
         )}
@@ -229,7 +232,7 @@ export default function EventDetailPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <StatusBadge variant={status as any} />
             <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700/80">
-              Target: {event.targetGroup || 'All Students'}
+              กลุ่มเป้าหมาย: {event.targetGroup || 'นักศึกษาทุกชั้นปี'}
             </span>
           </div>
 
@@ -243,7 +246,7 @@ export default function EventDetailPage() {
             <div className="flex items-start gap-3">
               <span className="text-base shrink-0">📅</span>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Date</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">วันที่</span>
                 <span className="font-semibold text-slate-200 block mt-0.5">{formatEventDate(event.date)}</span>
               </div>
             </div>
@@ -251,7 +254,7 @@ export default function EventDetailPage() {
             <div className="flex items-start gap-3">
               <span className="text-base shrink-0">🕘</span>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Time</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">เวลา</span>
                 <span className="font-semibold text-slate-200 block mt-0.5">{formatTimeRange(event.startTime, event.endTime)}</span>
               </div>
             </div>
@@ -259,7 +262,7 @@ export default function EventDetailPage() {
             <div className="flex items-start gap-3">
               <span className="text-base shrink-0">📍</span>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Location</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">สถานที่</span>
                 <span className="font-semibold text-slate-200 block mt-0.5">{event.location}</span>
               </div>
             </div>
@@ -272,10 +275,10 @@ export default function EventDetailPage() {
             </div>
             <div className="space-y-1">
               <span className="font-bold text-slate-100 block text-xs">
-                Attendance Check-In / Check-Out
+                คำแนะนำการลงชื่อเช็กอิน / เช็กเอาต์
               </span>
               <p className="text-slate-400 leading-relaxed text-[11px]">
-                Scan the venue projector screen QR code during active window hours to verify attendance.
+                สแกน QR Code บนหน้าจอแสดงผล ณ สถานที่จัดงานตามช่วงเวลาที่เปิดระบบเพื่อบันทึกการเข้าร่วมกิจกรรม
               </p>
             </div>
           </div>
@@ -283,7 +286,7 @@ export default function EventDetailPage() {
           {/* Description */}
           <div className="space-y-2 pt-1">
             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-              Event Description
+              รายละเอียดกิจกรรม
             </h2>
             <div className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line">
               {event.description}
@@ -296,13 +299,13 @@ export default function EventDetailPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    Activities
+                    ภาพกิจกรรม
                   </h2>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
-                    {galleryImages.length} photos
+                    {galleryImages.length} รูปภาพ
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500">Tap photo to enlarge</span>
+                <span className="text-[10px] text-slate-500">แตะที่รูปภาพเพื่อขยายใหญ่</span>
               </div>
 
               {/* Responsive Swipeable Photo Gallery */}
@@ -319,12 +322,12 @@ export default function EventDetailPage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imgUrl}
-                        alt={`Activity Photo ${idx + 1}`}
+                        alt={`รูปภาพกิจกรรมที่ ${idx + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="px-2.5 py-1 rounded-full bg-emerald-600/90 text-white text-[10px] font-bold shadow-md">
-                          🔍 View
+                          🔍 ขยาย
                         </span>
                       </div>
                     </div>

@@ -47,13 +47,13 @@ function LiffSessionContent() {
       const updated = await getLiffFriendship();
       if (updated && updated.friendFlag) {
         setIsLineFriend(true);
-        setLineNotice('Thank you! You are now friends with University Events.');
+        setLineNotice('ขอบคุณที่เพิ่มเพื่อนกับบัญชีทางการของระบบกิจกรรมมหาวิทยาลัย!');
       } else {
         setIsLineFriend(false);
-        setLineNotice('Please add or unblock University Events on LINE to receive event notifications.');
+        setLineNotice('กรุณาเพิ่มเพื่อนหรือเปิดรับข้อความจากบัญชีทางการของมหาวิทยาลัยเพื่อรับข่าวสารการแจ้งเตือน');
       }
     } catch (err) {
-      setLineNotice("We couldn't verify your LINE connection. Please try again.");
+      setLineNotice('ไม่สามารถตรวจสอบการเชื่อมต่อบัญชี LINE ได้ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setRequestingFriendship(false);
     }
@@ -107,10 +107,10 @@ function LiffSessionContent() {
           localStorage.setItem('student_access_token', result.accessToken);
           setStudentAccessToken(result.accessToken);
         }
-        setLineNotice('LINE account linked successfully! You can now scan event QR codes to submit attendance.');
+        setLineNotice('เชื่อมต่อบัญชี LINE เรียบร้อยแล้ว! คุณสามารถสแกน QR Code เพื่อลงชื่อเข้าร่วมกิจกรรมได้ทันที');
       }
     } catch (err: any) {
-      setLineNotice(err.message || 'Failed to link LINE account.');
+      setLineNotice(err.message || 'ไม่สามารถเชื่อมต่อบัญชี LINE ได้');
     } finally {
       setLinkingLine(false);
     }
@@ -118,20 +118,20 @@ function LiffSessionContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4 font-sans">
         <div className="w-16 h-16 rounded-full bg-indigo-500/20 border-2 border-indigo-500/40 flex items-center justify-center animate-spin">
           <div className="w-8 h-8 rounded-full border-4 border-indigo-400 border-t-transparent" />
         </div>
         <div className="text-center space-y-1">
-          <h2 className="text-lg font-bold text-slate-200">Connecting to LINE...</h2>
-          <p className="text-sm text-slate-400">Please wait while we initialize authentication.</p>
+          <h2 className="text-lg font-bold text-slate-200">กำลังเชื่อมต่อกับ LINE...</h2>
+          <p className="text-sm text-slate-400">กรุณารอสักครู่ขณะระบบกำลังตรวจสอบการยืนยันตัวตน</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 py-12 select-none">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 py-12 select-none font-sans">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl">
         {/* Header Icon */}
         <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl font-bold">
@@ -140,13 +140,13 @@ function LiffSessionContent() {
 
         <div className="space-y-2">
           <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-            LINE / LIFF Connected
+            เชื่อมต่อ LINE / LIFF แล้ว
           </span>
           <h1 className="text-2xl font-black text-slate-100">
-            Student Attendance Portal
+            พอร์ตัลลงชื่อเข้าร่วมกิจกรรม
           </h1>
           <p className="text-slate-400 text-sm">
-            {lineDisplayName ? `Welcome, ${lineDisplayName}!` : 'LINE authentication initialized successfully.'}
+            {lineDisplayName ? `ยินดีต้อนรับ คุณ ${lineDisplayName}!` : 'ยืนยันตัวตนผ่าน LINE เรียบร้อยแล้ว'}
           </p>
         </div>
 
@@ -154,26 +154,26 @@ function LiffSessionContent() {
         {liffInfo?.idToken && (
           <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3 text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-slate-400">LINE Authentication:</span>
-              <span className="text-emerald-400 font-bold">Verified</span>
+              <span className="text-slate-400">การยืนยันตัวตน LINE:</span>
+              <span className="text-emerald-400 font-bold">ตรวจสอบแล้ว</span>
             </div>
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-slate-400">University Identity:</span>
+              <span className="text-slate-400">ข้อมูลนักศึกษามหาวิทยาลัย:</span>
               <span className={lineLinked ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-                {lineLinked ? 'Linked & Verified' : 'Unlinked'}
+                {lineLinked ? 'เชื่อมต่อเรียบร้อยแล้ว' : 'ยังไม่ได้เชื่อมต่อ'}
               </span>
             </div>
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-slate-400">Official Account Friend:</span>
+              <span className="text-slate-400">เพื่อนบัญชีทางการ (LINE OA):</span>
               <span className={isLineFriend ? 'text-emerald-400 font-bold' : 'text-indigo-400 font-bold'}>
-                {isLineFriend === null ? 'Checking...' : isLineFriend ? 'Added' : 'Not Added'}
+                {isLineFriend === null ? 'กำลังตรวจสอบ...' : isLineFriend ? 'เพิ่มเพื่อนแล้ว' : 'ยังไม่ได้เพิ่มเพื่อน'}
               </span>
             </div>
 
             {isLineFriend === false && (
               <div className="pt-2 space-y-2 border-t border-slate-800/80">
                 <p className="text-indigo-300 text-xs leading-relaxed">
-                  Add University Events on LINE to receive event announcements, check-in notifications, and check-out notifications.
+                  เพิ่มเพื่อนบัญชี LINE มหาวิทยาลัย เพื่อรับข่าวสารกิจกรรม การแจ้งเตือนเช็กอิน และเช็กเอาต์
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -182,7 +182,7 @@ function LiffSessionContent() {
                     disabled={requestingFriendship}
                     className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
-                    {requestingFriendship ? 'Connecting...' : '➕ Add Official Account'}
+                    {requestingFriendship ? 'กำลังเชื่อมต่อ...' : '➕ เพิ่มเพื่อน LINE Official'}
                   </button>
                   <button
                     type="button"
@@ -190,7 +190,7 @@ function LiffSessionContent() {
                     disabled={checkingFriendship}
                     className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all disabled:opacity-50"
                   >
-                    {checkingFriendship ? '...' : '🔄 Re-check'}
+                    {checkingFriendship ? '...' : '🔄 ตรวจสอบอีกครั้ง'}
                   </button>
                 </div>
               </div>
@@ -199,14 +199,14 @@ function LiffSessionContent() {
             {!lineLinked && (
               <div className="pt-2 space-y-2">
                 <p className="text-amber-300 text-xs">
-                  Link your LINE identity to your University Student ID:
+                  เชื่อมต่อบัญชี LINE ของคุณกับรหัสนักศึกษามหาวิทยาลัย:
                 </p>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={linkInputStudentId}
                     onChange={(e) => setLinkInputStudentId(e.target.value)}
-                    placeholder="Enter Student ID (e.g. STD-66001)"
+                    placeholder="กรอกรหัสนักศึกษา (เช่น STD-66001)"
                     className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500"
                   />
                   <button
@@ -215,7 +215,7 @@ function LiffSessionContent() {
                     disabled={linkingLine || !linkInputStudentId.trim()}
                     className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all disabled:opacity-50 shrink-0"
                   >
-                    {linkingLine ? 'Linking...' : 'Link'}
+                    {linkingLine ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ'}
                   </button>
                 </div>
               </div>
@@ -230,12 +230,12 @@ function LiffSessionContent() {
         {/* QR Scan / Attendance Guidance Notice */}
         <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-200 text-left space-y-2">
           <p className="font-bold flex items-center gap-1.5 text-indigo-300">
-            <span>📌</span> How to Submit Event Attendance:
+            <span>📌</span> ขั้นตอนการลงชื่อเข้าร่วมกิจกรรม:
           </p>
           <ol className="list-decimal list-inside space-y-1 text-slate-300 leading-relaxed">
-            <li>Scan the active event <strong>Attendance QR Code</strong> displayed on the event projector or event page.</li>
-            <li>You will be directed to your specific event attendance session.</li>
-            <li>Upload your photo proof and submit attendance.</li>
+            <li>สแกน <strong>QR Code สำหรับลงชื่อเข้าร่วมกิจกรรม</strong> ที่แสดงบนหน้าจอสถานที่จัดงาน</li>
+            <li>ระบบจะนำท่านไปยังแบบฟอร์มลงชื่อสำหรับรอบกิจกรรมนั้นๆ</li>
+            <li>แนบรูปภาพหลักฐานการเข้าร่วมและกดส่งข้อมูล</li>
           </ol>
         </div>
 
@@ -245,7 +245,7 @@ function LiffSessionContent() {
             href="/events"
             className="inline-block w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
           >
-            Browse Active Events
+            เลือกดูรายการกิจกรรม
           </Link>
         </div>
       </div>
@@ -257,12 +257,12 @@ export default function LiffSessionEntryPoint() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4">
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4 font-sans">
           <div className="w-16 h-16 rounded-full bg-indigo-500/20 border-2 border-indigo-500/40 flex items-center justify-center animate-spin">
             <div className="w-8 h-8 rounded-full border-4 border-indigo-400 border-t-transparent" />
           </div>
           <div className="text-center space-y-1">
-            <h2 className="text-lg font-bold text-slate-200">Loading Portal...</h2>
+            <h2 className="text-lg font-bold text-slate-200">กำลังโหลดระบบ...</h2>
           </div>
         </div>
       }

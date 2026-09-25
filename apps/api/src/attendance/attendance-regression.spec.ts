@@ -840,7 +840,7 @@ async function runRegressionTests() {
   assert.strictEqual(resMany.messages.length, 2);
   const carouselBubbles = resMany.messages[1].contents.contents;
   assert.strictEqual(carouselBubbles.length, 12, 'LINE carousel must not exceed 12 bubbles max');
-  assert.strictEqual(carouselBubbles[11].body.contents[0].text, '+4 More', '12th bubble shows remaining photo count overflow');
+  assert.strictEqual(carouselBubbles[11].body.contents[0].text, '+4 รูปเพิ่มเติม', '12th bubble shows remaining photo count overflow');
 
   console.log('✅ Test 18 Passed: Phase 16.26 Visual LINE Event Flex Message generation, image priority & carousel safety verified.');
 
