@@ -149,3 +149,67 @@ export async function deleteEvent(id: string, token: string): Promise<boolean> {
 
   return true;
 }
+
+/**
+ * Upload event banner image file via POST /api/events/upload-banner (Admin Protected)
+ */
+export async function uploadEventBanner(file: File, token: string): Promise<{ url: string; filename: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE_URL}/api/events/upload-banner`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('UNAUTHORIZED');
+  }
+
+  if (!res.ok) {
+    const message = Array.isArray(json?.message)
+      ? json.message.join(', ')
+      : json?.message || 'Failed to upload event banner';
+    throw new Error(message);
+  }
+
+  if (json && json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Invalid response structure from backend API');
+}
+
+/**
+ * Remove event banner image via DELETE /api/events/:id/banner (Admin Protected)
+ */
+export async function deleteEventBanner(id: string, token: string): Promise<EventItem> {
+  const res = await fetch(`${API_BASE_URL}/api/events/${id}/banner`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('UNAUTHORIZED');
+  }
+
+  if (!res.ok) {
+    const message = json?.message || 'Failed to remove event banner';
+    throw new Error(message);
+  }
+
+  if (json && json.success && json.data) {
+    return json.data;
+  }
+
+  throw new Error('Invalid response structure from backend API');
+}

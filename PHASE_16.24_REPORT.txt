@@ -1,0 +1,144 @@
+================================================================================
+PHASE 16.24: EVENT BANNER IMAGE UPLOAD IMPLEMENTATION REPORT
+================================================================================
+
+1. OBJECTIVE
+--------------------------------------------------------------------------------
+Implement Event Banner Image Upload functionality for the University Event Management System.
+Allows admins to upload event banners directly from their computer/device to Cloudflare R2 object storage (or local storage in dev), preview the image before saving, replace or remove existing banners, and render banner images across public/student/admin event views while preserving full backward compatibility for existing event image URLs.
+
+2. EXISTING STORAGE IMPLEMENTATION AUDITED
+--------------------------------------------------------------------------------
+- Audited `StorageService`, `StorageProvider`, `S3StorageProvider`, and `LocalStorageProvider`.
+- Reused the existing S3/R2 storage provider abstraction (`StorageService.saveFile()`, `getFileStream()`, `deleteFile()`, `getPublicUrl()`).
+- Banners are stored under subfolder `'banners'` (e.g. `banners/1727254400000-<hash>.jpg`), keeping them separated from attendance proof photos (`proofs/`).
+- Attendance proof storage and security behavior were left 100% untouched.
+
+3. FILES CHANGED
+--------------------------------------------------------------------------------
+Backend (`apps/api`):
+1. `apps/api/src/events/events.service.ts`
+   - Added `uploadStandaloneBanner()`, `uploadBanner()`, `deleteBanner()`, and helper `extractBannerFilename()`.
+2. `apps/api/src/events/events.controller.ts`
+   - Added `POST /api/events/upload-banner` (Admin Protected)
+   - Added `POST /api/events/:id/banner` (Admin Protected)
+   - Added `DELETE /api/events/:id/banner` (Admin Protected)
+   - Added `GET /api/events/uploads/banners/:filename` (Public Streaming Endpoint)
+3. `apps/api/src/attendance/attendance.controller.ts`
+   - Added `GET /api/attendance/uploads/banners/:filename` (Public Streaming Endpoint Alias)
+4. `apps/api/src/attendance/attendance-regression.spec.ts`
+   - Added Test 16 covering banner upload, MIME/size validation, path traversal rejection, cleanup, and removal.
+
+Frontend (`apps/web`):
+5. `apps/web/src/lib/api.ts`
+   - Added `uploadEventBanner()` and `deleteEventBanner()` helper functions.
+6. `apps/web/src/app/admin/events/new/page.tsx`
+   - Upgraded form UI with file selection (`input type="file"`), instant local preview, file size/type info, remove image action, and R2 upload on submit.
+7. `apps/web/src/app/admin/events/[id]/edit/page.tsx`
+   - Upgraded form UI with existing banner preview, replace banner button, remove banner button, file selection, and R2 upload / cleanup on submit.
+
+Documentation & Reports:
+8. `PHASE_16.24_REPORT.txt`
+
+4. BACKEND UPLOAD ENDPOINTS
+--------------------------------------------------------------------------------
+- `POST /api/events/upload-banner`
+  - Auth: Admin JWT required (`@UseGuards(JwtAuthGuard, RolesGuard)`, `@Roles('ADMIN')`)
+  - Payload: multipart/form-data with `file`
+  - Max Size: 5 MB
+  - Allowed MIME Types: `image/jpeg`, `image/jpg`, `image/png`, `image/webp`
+  - Output: `{ url: string, filename: string }`
+
+- `POST /api/events/:id/banner`
+  - Auth: Admin JWT required
+  - Uploads file and updates `imageUrl` field on event `:id`, cleaning up any previous storage banner file.
+
+- `DELETE /api/events/:id/banner`
+  - Auth: Admin JWT required
+  - Removes banner from event `:id`, setting `imageUrl: null` and deleting object from storage.
+
+- `GET /api/events/uploads/banners/:filename` & `GET /api/attendance/uploads/banners/:filename`
+  - Auth: Public (No JWT required)
+  - Safely streams banner file with `Cache-Control: public, max-age=31536000, immutable`.
+
+5. STORAGE BEHAVIOR
+--------------------------------------------------------------------------------
+- Subfolder: `banners`
+- Filename pattern: `<timestamp>-<16-byte-hex>.<ext>`
+- Local Storage: Saved to `uploads/banners/` directory.
+- Production S3 / Cloudflare R2: Uploaded to `S3_BUCKET` under key `banners/<filename>`.
+- Object Deletion: Replaced or deleted banner objects are cleaned up via `storageService.deleteFile(filename, 'banners')`.
+
+6. DATABASE CHANGES
+--------------------------------------------------------------------------------
+NO schema migration or database changes were required.
+Reused existing `imageUrl` String? field in the `Event` database model.
+
+7. FRONTEND UX
+--------------------------------------------------------------------------------
+- Admin Create Event Page (`/admin/events/new`):
+  - File picker button "📁 Select Image File"
+  - Instant client-side preview box with hover "Remove Image" action
+  - Displays selected filename and file size in MB
+  - Secondary fallback input for pasting external image URL
+- Admin Edit Event Page (`/admin/events/[id]/edit`):
+  - Displays existing banner if attached
+  - Hover actions: "🔄 Replace Banner" and "🗑️ Remove Banner"
+  - Interactive file replacement with instant preview
+- Public & Student Views (`/events`, `/events/[id]`, EventCard):
+  - Renders banner image using `src={event.imageUrl}`
+  - Preserves clean fallback UI if no image is present or image fails to load.
+
+8. SECURITY CHECKS
+--------------------------------------------------------------------------------
+- Admin authentication required for banner upload, replacement, and deletion (`JwtAuthGuard`, `RolesGuard('ADMIN')`).
+- Unauthenticated users and students are strictly blocked from uploading or deleting banner files.
+- Strict MIME type whitelist (`image/jpeg`, `image/jpg`, `image/png`, `image/webp`).
+- Strict 5MB file size limit enforced server-side and client-side.
+- Server-side filename generation using cryptographically secure random bytes; original client filenames are discarded.
+- Strict path traversal prevention using `extractAndSanitizeFilename()`; rejects `..`, `%`, `\`, null bytes, and path tricks.
+- Public banner endpoint only permits streaming files from the `banners` subfolder.
+
+9. BACKWARD COMPATIBILITY
+--------------------------------------------------------------------------------
+- Existing production events with external image URLs (e.g. `https://images.unsplash.com/...`) remain 100% functional.
+- The system gracefully handles external URLs, uploaded R2/local banners, and null image URLs.
+
+10. TESTS & EXACT RESULTS
+--------------------------------------------------------------------------------
+Ran `npm test` in `apps/api`:
+- 16 / 16 tests PASSED (0 failed, 0 skipped).
+- Test 10: extractAndSanitizeFilename key sanitization -> PASSED
+- Test 11: EventsService createEvent triggers LINE announcement -> PASSED
+- Test 15: LINE Check-In/Check-Out notification triggers -> PASSED
+- Test 16: Event Banner upload, removal, MIME/size validation & cleanup -> PASSED
+
+11. API BUILD RESULT
+--------------------------------------------------------------------------------
+- Workspace `apps/api`: `npm run build` -> PASSED (0 errors)
+
+12. WEB BUILD RESULT
+--------------------------------------------------------------------------------
+- Workspace `apps/web`: `npm run build` -> PASSED (0 errors)
+
+13. MANUAL CONFIGURATION REQUIRED
+--------------------------------------------------------------------------------
+None. Uses existing environment variables (`S3_BUCKET`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `STORAGE_PROVIDER`).
+
+14. REMAINING LIMITATIONS
+--------------------------------------------------------------------------------
+None.
+
+15. GIT COMMIT HASH
+--------------------------------------------------------------------------------
+Commit Hash: 7e523b13e0f80cece655bd2448e37fcb688d0d61
+Commit Message: feat: add event banner image upload
+
+16. SUGGESTED DEPLOYMENT & TESTING STEPS
+--------------------------------------------------------------------------------
+1. Deploy updated API to Render.
+2. Deploy updated Web frontend to Vercel.
+3. Log into Admin Panel -> Create Event -> Select an image banner -> Confirm preview and submit.
+4. Verify event appears with banner on Public Events list and Event Details page.
+5. Edit Event -> Test replacing banner and removing banner.
+================================================================================

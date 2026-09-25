@@ -159,5 +159,27 @@ export class AttendanceController {
 
     return stream.pipe(res);
   }
+
+  /**
+   * GET /api/attendance/uploads/banners/:filename
+   * Stream stored public event banner image.
+   */
+  @Get('uploads/banners/:filename')
+  async getBannerImage(@Param('filename') filename: string, @Res() res: Response) {
+    const { stream, mimetype, contentLength } = await this.storageService.getFileStream(
+      filename,
+      'banners',
+    );
+
+    res.setHeader('Content-Type', mimetype);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    if (contentLength) {
+      res.setHeader('Content-Length', contentLength.toString());
+    }
+
+    return stream.pipe(res);
+  }
 }
 

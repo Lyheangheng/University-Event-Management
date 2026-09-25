@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { fetchEventById, updateEvent } from '../../../../../lib/api';
+import { fetchEventById, updateEvent, uploadEventBanner, deleteEventBanner } from '../../../../../lib/api';
 
 export default function EditEventPage() {
   const params = useParams();
@@ -22,9 +22,42 @@ export default function EditEventPage() {
   const [targetGroup, setTargetGroup] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
+  // Banner file upload state
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [bannerRemoved, setBannerRemoved] = useState(false);
+
   const [initialLoading, setInitialLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      setError('Invalid file type. Only JPEG, PNG, and WebP image files are allowed.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size exceeds the 5MB maximum limit.');
+      return;
+    }
+
+    setBannerFile(file);
+    setBannerPreview(URL.createObjectURL(file));
+    setBannerRemoved(false);
+  };
+
+  const handleRemoveBanner = () => {
+    setBannerFile(null);
+    setBannerPreview(null);
+    setImageUrl('');
+    setBannerRemoved(true);
+  };
 
   // Helper to format Date to YYYY-MM-DD
   const formatDateForInput = (isoStr: string) => {
@@ -121,6 +154,16 @@ export default function EditEventPage() {
     setSubmitting(true);
 
     try {
+      let finalImageUrl: string | null = imageUrl.trim() || null;
+
+      if (bannerRemoved) {
+        finalImageUrl = null;
+        await deleteEventBanner(id, token).catch(() => null);
+      } else if (bannerFile) {
+        const uploadRes = await uploadEventBanner(bannerFile, token);
+        finalImageUrl = uploadRes.url;
+      }
+
       await updateEvent(
         id,
         {
@@ -131,7 +174,7 @@ export default function EditEventPage() {
           endTime: endISO.toISOString(),
           location: location.trim(),
           targetGroup: targetGroup.trim(),
-          imageUrl: imageUrl.trim() || null,
+          imageUrl: finalImageUrl,
         },
         token,
       );
@@ -306,18 +349,80 @@ export default function EditEventPage() {
           </div>
         </div>
 
-        {/* Image URL (Optional) */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-            Event Banner Image URL <span className="text-slate-500 font-normal">(Optional)</span>
-          </label>
-          <input
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://images.unsplash.com/photo-..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-200 outline-none focus:border-indigo-500 transition-colors"
-          />
+        {/* Event Banner Upload, Preview & Removal */}
+        <div className="space-y-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              Event Banner Image <span className="text-slate-500 font-normal">(Optional)</span>
+            </label>
+            <span className="text-[10px] text-slate-500 font-medium">JPEG, PNG, WebP (Max 5MB)</span>
+          </div>
+
+          {/* Current Banner or New Preview */}
+          {(bannerPreview || (imageUrl && !bannerRemoved)) ? (
+            <div className="relative w-full h-48 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={bannerPreview || imageUrl}
+                alt="Banner Preview"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <label className="cursor-pointer px-4 py-2 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-white font-bold text-xs transition-all shadow-lg">
+                  <span>🔄 Replace Banner</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleRemoveBanner}
+                  className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs transition-all shadow-lg"
+                >
+                  🗑️ Remove Banner
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <label className="w-full sm:w-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 font-bold text-xs transition-all">
+                <span>📁 Select Image File</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+
+              <div className="text-center sm:text-left text-xs text-slate-500 flex-1">
+                {bannerFile ? (
+                  <span className="text-indigo-400 font-semibold truncate block">
+                    📄 {bannerFile.name} ({(bannerFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                ) : (
+                  <span>No banner attached. Select an image file or enter a URL below</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Secondary External URL Fallback */}
+          {!bannerFile && (
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => {
+                setImageUrl(e.target.value);
+                if (e.target.value) setBannerRemoved(false);
+              }}
+              placeholder="Or paste external image URL: https://..."
+              className="w-full bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-300 outline-none focus:border-indigo-500 transition-colors"
+            />
+          )}
         </div>
 
         {/* Submit Actions */}

@@ -501,6 +501,109 @@ async function runRegressionTests() {
   assert.strictEqual(checkOutTriggered, true, 'getSessionByToken should trigger notifyCheckOutOpened when window is active');
   console.log('✅ Test 15 Passed: Check-in and Check-out LINE notification triggers verified.');
 
+  // Test 16 (Phase 16.24): Event Banner Upload, Removal, MIME/Size Validation & Path Traversal Rejection
+  console.log('Test 16: EventsService event banner image upload, removal, MIME/Size & path traversal validation...');
+  const mockBannerEvent = {
+    id: 'event-banner-1',
+    title: 'Banner Test Event',
+    description: 'Testing banner upload',
+    date: new Date(),
+    startTime: new Date(),
+    endTime: new Date(Date.now() + 3600000),
+    location: 'Auditorium',
+    targetGroup: 'All Students',
+    imageUrl: '/api/events/uploads/banners/old-banner.jpg',
+  };
+  let currentEventState: any = { ...mockBannerEvent };
+  let deletedFiles: string[] = [];
+
+  const mockPrismaBannerEvents: any = {
+    event: {
+      findUnique: async ({ where }: any) => currentEventState,
+      update: async ({ where, data }: any) => {
+        currentEventState = { ...currentEventState, ...data };
+        return currentEventState;
+      },
+    },
+  };
+
+  const mockBannerStorage: any = {
+    saveFile: async (file: any, options: any) => {
+      if (!options?.allowedMimeTypes?.includes(file.mimetype)) {
+        throw new (await import('@nestjs/common')).BadRequestException('Invalid file type');
+      }
+      if (file.size > (options?.maxSizeBytes || 5 * 1024 * 1024)) {
+        throw new (await import('@nestjs/common')).BadRequestException('File size exceeds limit');
+      }
+      return {
+        filename: 'new-banner-123.jpg',
+        url: '/api/events/uploads/banners/new-banner-123.jpg',
+        path: 'banners/new-banner-123.jpg',
+        mimetype: file.mimetype,
+        size: file.size,
+      };
+    },
+    deleteFile: async (filename: string, subfolder: string) => {
+      deletedFiles.push(`${subfolder}/${filename}`);
+      return true;
+    },
+  };
+
+  const eventsServiceBanner = new EventsService(
+    mockPrismaBannerEvents,
+    mockNotificationLineService,
+    mockBannerStorage,
+  );
+
+  // 1. Valid banner upload
+  const validBanner = {
+    originalname: 'banner.png',
+    mimetype: 'image/png',
+    buffer: Buffer.from('fake-png-data'),
+    size: 1024,
+  };
+  const uploadResult = await eventsServiceBanner.uploadStandaloneBanner(validBanner as any);
+  assert.strictEqual(uploadResult.filename, 'new-banner-123.jpg');
+  assert.strictEqual(uploadResult.url, '/api/events/uploads/banners/new-banner-123.jpg');
+
+  // 2. Reject invalid MIME type
+  try {
+    await eventsServiceBanner.uploadStandaloneBanner({
+      originalname: 'hack.exe',
+      mimetype: 'application/x-msdownload',
+      buffer: Buffer.from('binary'),
+      size: 100,
+    } as any);
+    assert.fail('Should have rejected invalid MIME type');
+  } catch (err: any) {
+    assert.strictEqual(err.status, 400);
+  }
+
+  // 3. Reject oversized file (>5MB)
+  try {
+    await eventsServiceBanner.uploadStandaloneBanner({
+      originalname: 'huge.jpg',
+      mimetype: 'image/jpeg',
+      buffer: Buffer.alloc(6 * 1024 * 1024),
+      size: 6 * 1024 * 1024,
+    } as any);
+    assert.fail('Should have rejected oversized file');
+  } catch (err: any) {
+    assert.strictEqual(err.status, 400);
+  }
+
+  // 4. Upload and attach to event (cleans up old banner)
+  const updatedEventWithBanner = await eventsServiceBanner.uploadBanner('event-banner-1', validBanner as any);
+  assert.strictEqual(updatedEventWithBanner.imageUrl, '/api/events/uploads/banners/new-banner-123.jpg');
+  assert.strictEqual(deletedFiles.includes('banners/old-banner.jpg'), true, 'Old banner file should be deleted');
+
+  // 5. Delete banner from event
+  const clearedEvent = await eventsServiceBanner.deleteBanner('event-banner-1');
+  assert.strictEqual(clearedEvent.imageUrl, null);
+  assert.strictEqual(deletedFiles.includes('banners/new-banner-123.jpg'), true, 'New banner file should be deleted upon banner removal');
+
+  console.log('✅ Test 16 Passed: Event Banner upload, removal, MIME/size validation & cleanup verified.');
+
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }
 

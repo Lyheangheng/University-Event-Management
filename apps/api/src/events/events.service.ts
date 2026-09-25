@@ -9,6 +9,8 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Event } from '@prisma/client';
 import { LineMessagingService } from '../line/line-messaging.service';
+import { StorageService } from '../storage/storage.service';
+import { StorageFile, extractAndSanitizeFilename } from '../storage/storage.interface';
 
 @Injectable()
 export class EventsService {
@@ -17,6 +19,7 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lineMessagingService: LineMessagingService,
+    private readonly storageService?: StorageService,
   ) {}
 
   /**
@@ -247,5 +250,111 @@ export class EventsService {
         updatedAt: a.updatedAt,
       })),
     };
+  }
+
+  /**
+   * Helper to extract banner filename from image URL if it belongs to storage banners
+   */
+  private extractBannerFilename(imageUrl: string | null | undefined): string | null {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    if (!imageUrl.includes('banners')) return null;
+    try {
+      return extractAndSanitizeFilename(imageUrl);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Upload standalone event banner image file to R2/Local storage
+   */
+  async uploadStandaloneBanner(file: StorageFile): Promise<{ url: string; filename: string }> {
+    if (!this.storageService) {
+      throw new BadRequestException('Storage service is not configured');
+    }
+
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException('Event banner image file is required');
+    }
+
+    const saved = await this.storageService.saveFile(file, {
+      subfolder: 'banners',
+      allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+      maxSizeBytes: 5 * 1024 * 1024,
+    });
+
+    this.logger.log(`Uploaded event banner '${saved.filename}' (${saved.size} bytes)`);
+    return {
+      url: saved.url,
+      filename: saved.filename,
+    };
+  }
+
+  /**
+   * Upload and attach banner image to an existing event
+   */
+  async uploadBanner(eventId: string, file: StorageFile): Promise<Event> {
+    const existingEvent = await this.findEventById(eventId);
+
+    const uploaded = await this.uploadStandaloneBanner(file);
+
+    const oldFilename = this.extractBannerFilename(existingEvent.imageUrl);
+    if (oldFilename && this.storageService) {
+      await this.storageService.deleteFile(oldFilename, 'banners').catch((err) => {
+        this.logger.warn(`Failed to clean up old banner '${oldFilename}': ${err?.message || err}`);
+      });
+    }
+
+    const updatedEvent = await this.prisma.event.update({
+      where: { id: eventId },
+      data: {
+        imageUrl: uploaded.url,
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(`Updated banner image for event '${eventId}'`);
+    return updatedEvent;
+  }
+
+  /**
+   * Delete banner image from an existing event
+   */
+  async deleteBanner(eventId: string): Promise<Event> {
+    const existingEvent = await this.findEventById(eventId);
+
+    const oldFilename = this.extractBannerFilename(existingEvent.imageUrl);
+    if (oldFilename && this.storageService) {
+      await this.storageService.deleteFile(oldFilename, 'banners').catch((err) => {
+        this.logger.warn(`Failed to delete banner object '${oldFilename}': ${err?.message || err}`);
+      });
+    }
+
+    const updatedEvent = await this.prisma.event.update({
+      where: { id: eventId },
+      data: {
+        imageUrl: null,
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(`Removed banner image from event '${eventId}'`);
+    return updatedEvent;
   }
 }
