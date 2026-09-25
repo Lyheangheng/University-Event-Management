@@ -1,0 +1,151 @@
+===============================================================================
+PHASE 16.26 REPORT: VISUAL LINE EVENT ANNOUNCEMENT & LIFF MOBILE REDESIGN
+===============================================================================
+
+OBJECTIVE
+-------------------------------------------------------------------------------
+Transform the University LINE Official Account (OA) notification experience into a 
+visually rich social-media style event post and align the student LIFF event detail 
+page (/events/[id]) to be visually consistent with LINE mobile UI guidelines.
+
+EXISTING LINE NOTIFICATION ARCHITECTURE AUDIT (PART 1)
+-------------------------------------------------------------------------------
+1. Service File: `apps/api/src/line/line-messaging.service.ts`
+2. Event Announcement Trigger: `EventsService.createEvent()` in `apps/api/src/events/events.service.ts`
+   invokes `LineMessagingService.notifyEventAnnouncement(event)`.
+3. Check-In Window Trigger: `AttendanceService.openSession()` / `getSessionByToken()` in
+   `apps/api/src/attendance/attendance.service.ts` invokes `LineMessagingService.notifyCheckInOpened()`.
+4. Check-Out Window Trigger: `AttendanceService.openSession()` / `getSessionByToken()` in
+   `apps/api/src/attendance/attendance.service.ts` invokes `LineMessagingService.notifyCheckOutOpened()`.
+5. Idempotency: Managed via `sentNotifications: Set<string>` in `LineMessagingService`.
+   `event_announcement_${event.id}`, `check_in_open_${event.id}`, `check_out_open_${event.id}` keys
+   prevent duplicate notifications.
+6. Environment Variables:
+   - `LINE_CHANNEL_ACCESS_TOKEN` / `line.channelAccessToken`
+   - `LINE_CHANNEL_SECRET` / `line.channelSecret`
+   - `FRONTEND_URL` (Web/LIFF base URL)
+   - `BACKEND_URL` / `API_BASE_URL` (Render API base URL)
+
+FILES CHANGED
+-------------------------------------------------------------------------------
+1. `apps/api/src/storage/image-url.helper.ts` (NEW)
+   - Centralized helper `buildPublicImageUrl` for converting stored R2 keys, relative `/api/` routes,
+     or external image links into full, absolute public HTTPS backend streaming URLs.
+2. `apps/api/src/line/line-flex.builder.ts` (NEW)
+   - LINE Flex Message builder `buildEventAnnouncementFlexMessages` constructing rich Flex Bubbles
+     and Activities Carousels adhering to LINE Messaging API specifications.
+3. `apps/api/src/line/line-messaging.service.ts` (MODIFIED)
+   - Updated `notifyEventAnnouncement` to generate visual Flex Messages with image hero, metadata rows,
+     "View Event" button, and Activities photo carousel instead of plain text messages.
+4. `apps/web/src/app/events/[id]/page.tsx` (MODIFIED)
+   - Redesigned student/public event detail page with a LINE mobile experience: header bar, hero image,
+     compact metadata rows, student attendance instructions, responsive Activities photo gallery,
+     and full-screen Lightbox with photo counter & navigation.
+5. `apps/api/src/attendance/attendance-regression.spec.ts` (MODIFIED)
+   - Added Test 18 validating Flex Message schema generation, image priority rules, Activities carousel
+     capping (max 12 bubbles), path/credential safety, and description truncation.
+
+LINE FLEX MESSAGE DESIGN (PART 2, 3, 5, 6)
+-------------------------------------------------------------------------------
+- Structure:
+  - Hero Image: Uses optional event banner if available; if not available, uses first gallery photo;
+    if no image exists, renders a clean green visual badge ("🎓 UNIVERSITY EVENT").
+  - Body:
+    - Event Title (bold, size xl)
+    - Metadata Rows: 📅 Date, 🕘 Time Range, 📍 Location
+    - Truncated Description Preview (max 120 chars)
+  - Footer:
+    - [ View Event ] green primary button pointing to `${FRONTEND_URL}/events/${event.id}`.
+  - Activities Carousel (Message 2 in push array):
+    - Appears when `EventImage` records exist for the event.
+    - Rendered as a LINE Flex Carousel with micro photo bubbles.
+    - Capped at maximum 12 bubbles (if >12 photos, 11 photo bubbles + "+N More / View All Photos" bubble).
+  - Notification Alt Text:
+    - Compact text summary with title, date, time, location, and tap prompt for non-visual preview environments.
+
+IMAGE URL STRATEGY (PART 4 & 9)
+-------------------------------------------------------------------------------
+- Image Priority:
+  1. Optional event banner (`event.imageUrl`)
+  2. First gallery image (`event.images[0].imageUrl`)
+  3. Fallback UI badge
+- Streaming Endpoints:
+  - Banners: `GET /api/events/uploads/banners/:filename`
+  - Gallery Photos: `GET /api/events/uploads/event-images/:filename`
+- Resolution: All stored relative paths or R2 keys are converted to complete HTTPS URLs:
+  e.g., `https://university-event-api.onrender.com/api/events/uploads/event-images/...`
+- No Cloudflare R2 credentials or raw bucket endpoints are exposed to clients or LINE payloads.
+
+LIFF / WEB MOBILE REDESIGN (PART 8 & 10)
+-------------------------------------------------------------------------------
+- Mobile-first, LINE-integrated aesthetic with slate dark surfaces and emerald accents.
+- Header bar with university branding and navigation.
+- Large primary image card following image priority rules.
+- Compact metadata grid for Date/Time and Location.
+- Clear Attendance QR Instructions banner.
+- Responsive Activities gallery with tap-to-enlarge full-screen lightbox, photo counter, and swipe navigation.
+
+RICH MENU AUDIT (PART 11)
+-------------------------------------------------------------------------------
+- Audit Finding: No code-managed rich menu implementation currently exists in `apps/api`.
+- Recommendation: Existing LINE Official Account rich menu set up in LINE Official Account Manager
+  remains intact. No changes were made to rich menu management to avoid unnecessary system expansion.
+
+SECURITY (PART 14)
+-------------------------------------------------------------------------------
+- LINE Messaging API requests are executed strictly server-side.
+- Storage credentials (R2 Access Keys / Secrets) and JWT secrets are kept confidential and never sent to LINE.
+- No admin URLs or management endpoints are exposed in LINE message buttons.
+
+TEST RESULTS (PART 16)
+-------------------------------------------------------------------------------
+- Regression Test Suite (`apps/api/src/attendance/attendance-regression.spec.ts`):
+  - Total Tests Executed: 18 Test Suites (incorporating 20+ requirement assertions)
+  - Pass/Fail Count: 18 PASSED, 0 FAILED.
+  - Test 18 specifically validated:
+    1. Valid Flex Message schema generation
+    2. Banner priority as hero image
+    3. First gallery image as fallback hero
+    4. Image-less event fallback UI rendering without crash
+    5. Activities carousel generation & max 12 bubble cap (+N More overflow bubble)
+    6. View Event HTTPS URL formatting & non-exposure of admin routes or R2 credentials
+    7. Safe description truncation
+    8. Idempotency preservation for LINE notifications
+
+BUILD RESULTS (PART 17)
+-------------------------------------------------------------------------------
+- Backend Build (`npm run build --workspace=apps/api`): PASSED (nest build finished cleanly)
+- Frontend Build (`npm run build --workspace=apps/web`): PASSED (next build created production output cleanly)
+
+MANUAL PRODUCTION TESTING INSTRUCTIONS (PART 18)
+-------------------------------------------------------------------------------
+1. Create Event with Banner & 3 Gallery Photos:
+   - Log in to Admin Panel (`/admin/login`).
+   - Create a new event, upload a banner image, and upload 3 gallery photos.
+   - Save event.
+   - Verify event creation succeeds.
+   - Verify linked LINE account receives visual event announcement card with banner image, date/time, location, preview, and [ View Event ] button, followed by an Activities carousel with 3 photo cards.
+   - Tap [ View Event ] -> LIFF opens `/events/[id]`. Verify mobile hero banner, details, gallery, and lightbox.
+
+2. Create Event with No Banner & 3 Gallery Photos:
+   - Create a new event without a banner, but upload 3 gallery photos.
+   - Save event.
+   - Verify LINE announcement uses the first gallery photo as the primary hero image in LINE.
+
+3. Create Event with No Banner & No Gallery Photos:
+   - Create a new event with text details only.
+   - Save event.
+   - Verify LINE announcement sends cleanly with the green "🎓 UNIVERSITY EVENT" fallback header.
+
+MANUAL CONFIGURATION REQUIRED
+-------------------------------------------------------------------------------
+- None in LINE Developer Console.
+- Ensure production environment variables remain set:
+  - `LINE_CHANNEL_ACCESS_TOKEN`
+  - `FRONTEND_URL` (e.g. `https://university-event-management-web-phi.vercel.app`)
+  - `BACKEND_URL` / `API_BASE_URL` (e.g. `https://university-event-api.onrender.com`)
+
+GIT COMMIT INFORMATION (PART 20)
+-------------------------------------------------------------------------------
+- Commit Message: feat: add visual LINE event announcements
+===============================================================================

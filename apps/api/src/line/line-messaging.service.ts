@@ -1,15 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  EventNotificationPayload,
+  buildEventAnnouncementFlexMessages,
+} from './line-flex.builder';
 
-export interface EventNotificationPayload {
-  id: string;
-  title: string;
-  location: string;
-  date: Date;
-  startTime: Date;
-  endTime: Date;
-}
+export { EventNotificationPayload };
 
 @Injectable()
 export class LineMessagingService {
@@ -87,27 +84,25 @@ export class LineMessagingService {
     }
 
     const frontendBaseUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const eventUrl = `${frontendBaseUrl}/events/${event.id}`;
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
 
-    const dateStr = new Date(event.date).toLocaleDateString('en-GB');
-    const timeStr = `${new Date(event.startTime).toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })} - ${new Date(event.endTime).toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })}`;
+    const backendBaseUrl =
+      this.configService.get<string>('BACKEND_URL') ||
+      this.configService.get<string>('API_BASE_URL') ||
+      process.env.BACKEND_URL;
 
-    const textMessage = {
-      type: 'text',
-      text: `📢 New University Event Announced!\n\n📌 Title: ${event.title}\n📅 Date: ${dateStr}\n⏰ Time: ${timeStr}\n📍 Location: ${event.location}\n\n🔗 View details: ${eventUrl}`,
-    };
+    const { messages } = buildEventAnnouncementFlexMessages(
+      event,
+      frontendBaseUrl,
+      backendBaseUrl,
+    );
 
     let deliveredCount = 0;
     for (const student of linkedStudents) {
       if (student.lineUserId) {
-        const success = await this.sendPushMessage(student.lineUserId, [textMessage]);
+        const success = await this.sendPushMessage(student.lineUserId, messages);
         if (success) deliveredCount++;
       }
     }
@@ -136,7 +131,9 @@ export class LineMessagingService {
     }
 
     const frontendBaseUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
     const attendanceUrl = `${frontendBaseUrl}/attendance/session/${sessionToken}`;
 
     const textMessage = {
@@ -176,7 +173,9 @@ export class LineMessagingService {
     }
 
     const frontendBaseUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000';
     const attendanceUrl = `${frontendBaseUrl}/attendance/session/${sessionToken}`;
 
     const textMessage = {
@@ -195,4 +194,3 @@ export class LineMessagingService {
     return deliveredCount;
   }
 }
-

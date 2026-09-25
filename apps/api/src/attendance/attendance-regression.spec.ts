@@ -732,6 +732,118 @@ async function runRegressionTests() {
 
   console.log('✅ Test 17 Passed: Event Gallery multi-photo upload, sort preservation, streaming & cleanup verified.');
 
+  // Test 18 (Phase 16.26): Visual LINE Event Flex Message Generation, Image Priority, Activities Carousel & URL Safety
+  console.log('Test 18: Phase 16.26 Visual LINE Event Flex Message generation, image priority, activities carousel & URL safety...');
+  const { buildPublicImageUrl } = await import('../storage/image-url.helper');
+  const { buildEventAnnouncementFlexMessages } = await import('../line/line-flex.builder');
+
+  const frontendBase = 'https://university-event-management-web-phi.vercel.app';
+  const backendBase = 'https://university-event-api.onrender.com';
+
+  // Subtest A: Image URL Helper
+  assert.strictEqual(buildPublicImageUrl(null), null);
+  assert.strictEqual(buildPublicImageUrl(''), null);
+  assert.strictEqual(
+    buildPublicImageUrl('/api/events/uploads/banners/banner1.jpg', 'banners', backendBase),
+    'https://university-event-api.onrender.com/api/events/uploads/banners/banner1.jpg',
+  );
+  assert.strictEqual(
+    buildPublicImageUrl('https://external.com/photo.png', 'banners', backendBase),
+    'https://external.com/photo.png',
+  );
+  assert.strictEqual(
+    buildPublicImageUrl('https://acc123.r2.cloudflarestorage.com/bucket/event-images/photo99.jpg', 'event-images', backendBase),
+    'https://university-event-api.onrender.com/api/events/uploads/event-images/photo99.jpg',
+  );
+
+  // Subtest B: Banner takes priority as hero image
+  const eventWithBanner = {
+    id: 'evt-banner-101',
+    title: 'Grand Alumni Gala',
+    description: 'A very long description for the grand alumni gala event taking place at the university main auditorium with live performances, food, networking, and speeches.',
+    location: 'Main Auditorium',
+    date: '2026-10-10T00:00:00.000Z',
+    startTime: '2026-10-10T09:00:00.000Z',
+    endTime: '2026-10-10T12:00:00.000Z',
+    imageUrl: '/api/events/uploads/banners/gala-banner.jpg',
+    images: [
+      { id: 'img-1', imageUrl: '/api/events/uploads/event-images/gala1.jpg', sortOrder: 0 },
+      { id: 'img-2', imageUrl: '/api/events/uploads/event-images/gala2.jpg', sortOrder: 1 },
+    ],
+  };
+
+  const resBanner = buildEventAnnouncementFlexMessages(eventWithBanner, frontendBase, backendBase);
+  assert(resBanner.altText.includes('Grand Alumni Gala'), 'altText must contain event title');
+  assert(resBanner.altText.includes('Main Auditorium'), 'altText must contain location');
+  assert.strictEqual(resBanner.messages.length, 2, 'Should return main flex message + activities carousel');
+  assert.strictEqual(resBanner.messages[0].contents.hero.url, 'https://university-event-api.onrender.com/api/events/uploads/banners/gala-banner.jpg');
+  assert.strictEqual(resBanner.messages[0].contents.footer.contents[0].action.uri, `${frontendBase}/events/evt-banner-101`);
+  assert(!JSON.stringify(resBanner).includes('/admin'), 'No admin URL must be exposed');
+  assert(!JSON.stringify(resBanner).includes('r2.cloudflarestorage.com'), 'No direct R2 credentials/S3 endpoints exposed');
+
+  // Subtest C: First gallery photo used when banner is absent
+  const eventNoBannerWithGallery = {
+    id: 'evt-gallery-202',
+    title: 'Robotics Workshop',
+    description: 'Hands-on workshop on autonomous mobile robots.',
+    location: 'Engineering Lab 3',
+    date: '2026-11-05T00:00:00.000Z',
+    startTime: '2026-11-05T13:00:00.000Z',
+    endTime: '2026-11-05T16:00:00.000Z',
+    imageUrl: null,
+    images: [
+      { id: 'img-3', imageUrl: '/api/events/uploads/event-images/robot1.jpg', sortOrder: 0 },
+      { id: 'img-4', imageUrl: '/api/events/uploads/event-images/robot2.jpg', sortOrder: 1 },
+    ],
+  };
+
+  const resGalleryHero = buildEventAnnouncementFlexMessages(eventNoBannerWithGallery, frontendBase, backendBase);
+  assert.strictEqual(resGalleryHero.messages[0].contents.hero.url, 'https://university-event-api.onrender.com/api/events/uploads/event-images/robot1.jpg');
+
+  // Subtest D: Event with no images generates valid message without hero or crash
+  const eventNoImages = {
+    id: 'evt-noimg-303',
+    title: 'General Student Assembly',
+    description: 'Monthly student council assembly meeting.',
+    location: 'Room 204',
+    date: '2026-12-01T00:00:00.000Z',
+    startTime: '2026-12-01T10:00:00.000Z',
+    endTime: '2026-12-01T11:30:00.000Z',
+    imageUrl: null,
+    images: [],
+  };
+
+  const resNoImages = buildEventAnnouncementFlexMessages(eventNoImages, frontendBase, backendBase);
+  assert.strictEqual(resNoImages.messages.length, 1, 'Event with no images returns 1 main flex message');
+  assert.strictEqual(resNoImages.messages[0].contents.hero, undefined, 'Hero should be undefined when no images exist');
+  assert(resNoImages.messages[0].contents.body.contents.some((c: any) => c.backgroundColor === '#06C755'), 'Fallback visual banner header present');
+
+  // Subtest E: Activities carousel limits to 12 max bubbles when >12 photos exist
+  const manyImages = Array.from({ length: 15 }, (_, i) => ({
+    id: `img-${i + 1}`,
+    imageUrl: `/api/events/uploads/event-images/photo-${i + 1}.jpg`,
+    sortOrder: i,
+  }));
+  const eventManyPhotos = {
+    id: 'evt-many-404',
+    title: 'Campus Culture Fest',
+    description: 'Cultural festival',
+    location: 'Main Lawn',
+    date: '2026-12-15T00:00:00.000Z',
+    startTime: '2026-12-15T09:00:00.000Z',
+    endTime: '2026-12-15T20:00:00.000Z',
+    imageUrl: null,
+    images: manyImages,
+  };
+
+  const resMany = buildEventAnnouncementFlexMessages(eventManyPhotos, frontendBase, backendBase);
+  assert.strictEqual(resMany.messages.length, 2);
+  const carouselBubbles = resMany.messages[1].contents.contents;
+  assert.strictEqual(carouselBubbles.length, 12, 'LINE carousel must not exceed 12 bubbles max');
+  assert.strictEqual(carouselBubbles[11].body.contents[0].text, '+4 More', '12th bubble shows remaining photo count overflow');
+
+  console.log('✅ Test 18 Passed: Phase 16.26 Visual LINE Event Flex Message generation, image priority & carousel safety verified.');
+
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }
 
@@ -739,6 +851,7 @@ runRegressionTests().catch((err) => {
   console.error('❌ Regression Test Failed:', err);
   process.exit(1);
 });
+
 
 
 

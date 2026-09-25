@@ -5,7 +5,12 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { EventItem } from '../../../types/event';
 import { fetchEventById } from '../../../lib/api';
-import { formatEventDate, formatTimeRange, calculateEventStatus, getEventImageUrl } from '../../../lib/formatters';
+import {
+  formatEventDate,
+  formatTimeRange,
+  calculateEventStatus,
+  getEventImageUrl,
+} from '../../../lib/formatters';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { ErrorState } from '../../../components/ui/ErrorState';
 
@@ -16,8 +21,8 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [imageError, setImageError] = useState<boolean>(false);
-  const [activeLightbox, setActiveLightbox] = useState<string | null>(null);
+  const [primaryImageError, setPrimaryImageError] = useState<boolean>(false);
+  const [activeLightboxIndex, setActiveLightboxIndex] = useState<number | null>(null);
 
   const loadEvent = useCallback(async () => {
     if (!id) return;
@@ -43,12 +48,13 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-6 animate-pulse">
-        <div className="w-32 h-8 bg-slate-800/60 rounded-xl" />
-        <div className="w-full h-64 sm:h-80 bg-slate-800/60 rounded-3xl" />
-        <div className="space-y-4 pt-4">
-          <div className="w-1/3 h-8 bg-slate-800/80 rounded" />
-          <div className="w-full h-24 bg-slate-800/50 rounded-xl" />
+      <div className="w-full max-w-lg mx-auto px-4 py-6 space-y-6 animate-pulse font-sans">
+        <div className="w-24 h-6 bg-slate-800/60 rounded-lg" />
+        <div className="w-full h-60 bg-slate-800/60 rounded-3xl" />
+        <div className="space-y-4 pt-2">
+          <div className="w-3/4 h-8 bg-slate-800/80 rounded-xl" />
+          <div className="w-full h-20 bg-slate-800/50 rounded-2xl" />
+          <div className="w-full h-32 bg-slate-800/40 rounded-2xl" />
         </div>
       </div>
     );
@@ -56,8 +62,8 @@ export default function EventDetailPage() {
 
   if (error === 'NOT_FOUND') {
     return (
-      <div className="w-full max-w-md mx-auto px-4 py-16 text-center space-y-6">
-        <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+      <div className="w-full max-w-md mx-auto px-4 py-16 text-center space-y-6 font-sans">
+        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center mx-auto shadow-xl">
           <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -70,7 +76,7 @@ export default function EventDetailPage() {
         </div>
         <Link
           href="/events"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold transition-colors shadow-lg shadow-indigo-950/40"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-emerald-950/40"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -86,163 +92,238 @@ export default function EventDetailPage() {
   }
 
   const status = calculateEventStatus(event.startTime, event.endTime);
-  const bannerUrl = getEventImageUrl(event.imageUrl);
+
+  // Image Priority:
+  // 1. Optional event banner (event.imageUrl)
+  // 2. First gallery photo (event.images[0].imageUrl)
+  // 3. Fallback UI
+  let primaryRawUrl: string | null = null;
+  if (event.imageUrl && typeof event.imageUrl === 'string' && event.imageUrl.trim()) {
+    primaryRawUrl = event.imageUrl;
+  } else if (event.images && Array.isArray(event.images) && event.images.length > 0) {
+    const firstImg = event.images[0]?.imageUrl;
+    if (firstImg && typeof firstImg === 'string' && firstImg.trim()) {
+      primaryRawUrl = firstImg;
+    }
+  }
+
+  const primaryImageUrl = primaryRawUrl ? getEventImageUrl(primaryRawUrl) : null;
+  const galleryImages = event.images || [];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8 font-sans">
+    <div className="w-full max-w-xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-5 font-sans">
       {/* Lightbox Modal */}
-      {activeLightbox && (
+      {activeLightboxIndex !== null && galleryImages[activeLightboxIndex] && (
         <div
-          onClick={() => setActiveLightbox(null)}
-          className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setActiveLightboxIndex(null)}
+          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
         >
-          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={activeLightbox}
-              alt="Enlarged photo"
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-slate-700"
-            />
-            <button
-              onClick={() => setActiveLightbox(null)}
-              className="mt-4 px-6 py-2 rounded-full bg-slate-900 border border-slate-700 text-slate-200 font-bold text-xs hover:bg-slate-800 transition-all"
-            >
-              ✕ Close Preview
-            </button>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center space-y-4"
+          >
+            {/* Lightbox Header / Counter */}
+            <div className="w-full flex items-center justify-between text-slate-300 text-xs font-semibold px-2">
+              <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-emerald-400">
+                Photo {activeLightboxIndex + 1} of {galleryImages.length}
+              </span>
+              <button
+                onClick={() => setActiveLightboxIndex(null)}
+                className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Lightbox Image */}
+            <div className="relative w-full flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getEventImageUrl(galleryImages[activeLightboxIndex].imageUrl) || ''}
+                alt={`Photo ${activeLightboxIndex + 1}`}
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-slate-800"
+              />
+            </div>
+
+            {/* Lightbox Navigation Controls */}
+            {galleryImages.length > 1 && (
+              <div className="flex items-center gap-4 pt-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveLightboxIndex((prev) =>
+                      prev === null || prev === 0 ? galleryImages.length - 1 : prev - 1
+                    );
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                >
+                  ← Previous
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveLightboxIndex((prev) =>
+                      prev === null || prev === galleryImages.length - 1 ? 0 : prev + 1
+                    );
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Top Back Navigation ONLY (Public student page) */}
-      <div className="flex items-center justify-between">
+      {/* LINE Mobile Header Bar */}
+      <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800 px-4 py-2.5 rounded-2xl backdrop-blur-md shadow-md">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-sm font-black">
+            🎓
+          </div>
+          <div>
+            <span className="text-xs font-bold text-slate-200 block leading-tight">University Events</span>
+            <span className="text-[10px] text-slate-400 block">Official Event Feed</span>
+          </div>
+        </div>
         <Link
           href="/events"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:border-slate-700 transition-all group"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-medium text-slate-300 hover:text-white transition-all"
         >
-          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Events Portal
+          All Events
         </Link>
       </div>
 
-      {/* Main Event Article Container */}
-      <article className="bg-slate-900/70 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl shadow-indigo-950/20 backdrop-blur-xl">
-        {/* Event Banner Image */}
-        {bannerUrl && !imageError ? (
-          <div className="relative w-full h-64 sm:h-96 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800/80">
+      {/* Main Event Post Card */}
+      <article className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-950/10">
+        {/* Large Primary Event Image Hero */}
+        {primaryImageUrl && !primaryImageError ? (
+          <div className="relative w-full h-56 sm:h-72 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={bannerUrl}
+              src={primaryImageUrl}
               alt={event.title}
-              onError={() => setImageError(true)}
+              onError={() => setPrimaryImageError(true)}
               className="w-full h-full object-cover"
             />
           </div>
-        ) : null}
+        ) : (
+          <div className="w-full p-6 bg-gradient-to-br from-emerald-900/40 via-slate-900 to-indigo-950/40 border-b border-slate-800 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl shrink-0">
+              🎓
+            </div>
+            <div>
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">University Event Post</span>
+              <span className="text-[11px] text-slate-400 block">Official Campus Announcement</span>
+            </div>
+          </div>
+        )}
 
         {/* Content Body */}
-        <div className="p-6 sm:p-10 space-y-8">
-          {/* Header Info */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge variant={status as any} />
-              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800/80 text-slate-300 border border-slate-700/60">
-                Target: {event.targetGroup || 'All Students'}
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-100 tracking-tight leading-tight">
-              {event.title}
-            </h1>
+        <div className="p-5 sm:p-7 space-y-6">
+          {/* Status & Target Group */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <StatusBadge variant={status as any} />
+            <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700/80">
+              Target: {event.targetGroup || 'All Students'}
+            </span>
           </div>
 
-          {/* Student Attendance Instructions Banner */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs sm:text-sm text-slate-300 flex items-start gap-3 sm:gap-4 shadow-md">
-            <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 text-lg">
+          {/* Event Title */}
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-100 tracking-tight leading-tight">
+            {event.title}
+          </h1>
+
+          {/* Compact Metadata Rows */}
+          <div className="space-y-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs">
+            <div className="flex items-start gap-3">
+              <span className="text-base shrink-0">📅</span>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Date</span>
+                <span className="font-semibold text-slate-200 block mt-0.5">{formatEventDate(event.date)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="text-base shrink-0">🕘</span>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Time</span>
+                <span className="font-semibold text-slate-200 block mt-0.5">{formatTimeRange(event.startTime, event.endTime)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="text-base shrink-0">📍</span>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Location</span>
+                <span className="font-semibold text-slate-200 block mt-0.5">{event.location}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Student Attendance QR Instruction Banner */}
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-slate-300 flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 text-base">
               📱
             </div>
             <div className="space-y-1">
-              <span className="font-bold text-slate-100 block text-xs sm:text-sm">
-                Student Attendance Instructions
+              <span className="font-bold text-slate-100 block text-xs">
+                Attendance Check-In / Check-Out
               </span>
-              <p className="text-slate-400 leading-relaxed text-xs">
-                To check in or check out for this event, please scan the live dynamic QR code displayed on the venue&apos;s <strong className="text-slate-200">Projector Display</strong> screen during the official attendance window.
+              <p className="text-slate-400 leading-relaxed text-[11px]">
+                Scan the venue projector screen QR code during active window hours to verify attendance.
               </p>
             </div>
           </div>
 
-          {/* Quick Details Metadata Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs sm:text-sm">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Date & Time</span>
-                <span className="font-semibold text-slate-200 block mt-0.5">{formatEventDate(event.date)}</span>
-                <span className="text-slate-400 text-xs block">{formatTimeRange(event.startTime, event.endTime)}</span>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Location</span>
-                <span className="font-semibold text-slate-200 block mt-0.5">{event.location}</span>
-                <span className="text-slate-400 text-xs block">Main Campus</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Detailed Description */}
-          <div className="space-y-3 pt-2">
-            <h2 className="text-base font-bold text-slate-200 uppercase tracking-wider text-xs">
+          {/* Description */}
+          <div className="space-y-2 pt-1">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
               Event Description
             </h2>
-            <div className="text-sm sm:text-base text-slate-300 leading-relaxed whitespace-pre-line space-y-4">
+            <div className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line">
               {event.description}
             </div>
           </div>
 
-          {/* Event Photo Gallery Grid */}
-          {event.images && event.images.length > 0 && (
-            <div className="space-y-4 pt-6 border-t border-slate-800">
+          {/* Activities Photo Gallery */}
+          {galleryImages.length > 0 && (
+            <div className="space-y-3 pt-5 border-t border-slate-800">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-2">
-                  <span>📸 Event Gallery</span>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
-                    {event.images.length} photos
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Activities
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                    {galleryImages.length} photos
                   </span>
-                </h2>
-                <span className="text-[10px] text-slate-500">Click any photo to enlarge</span>
+                </div>
+                <span className="text-[10px] text-slate-500">Tap photo to enlarge</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {event.images.map((imgItem) => {
+              {/* Responsive Swipeable Photo Gallery */}
+              <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-none snap-x snap-mandatory">
+                {galleryImages.map((imgItem, idx) => {
                   const imgUrl = getEventImageUrl(imgItem.imageUrl);
                   if (!imgUrl) return null;
                   return (
                     <div
-                      key={imgItem.id}
-                      onClick={() => setActiveLightbox(imgUrl)}
-                      className="group relative h-48 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-indigo-500/60 transition-all duration-300 cursor-pointer shadow-lg"
+                      key={imgItem.id || idx}
+                      onClick={() => setActiveLightboxIndex(idx)}
+                      className="snap-start shrink-0 w-44 sm:w-auto h-36 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-emerald-500/60 transition-all duration-300 cursor-pointer relative group shadow-md"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imgUrl}
-                        alt="Event Gallery Photo"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        alt={`Activity Photo ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="p-2 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">
+                      <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-600/90 text-white text-[10px] font-bold shadow-md">
                           🔍 View
                         </span>
                       </div>
