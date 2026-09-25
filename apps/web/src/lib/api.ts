@@ -1,4 +1,4 @@
-import { EventItem, ApiResponse } from '../types/event';
+import { EventItem, EventImageItem, ApiResponse } from '../types/event';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -212,4 +212,66 @@ export async function deleteEventBanner(id: string, token: string): Promise<Even
   }
 
   throw new Error('Invalid response structure from backend API');
+}
+
+/**
+ * Upload multiple gallery images via POST /api/events/:id/images (Admin Protected)
+ */
+export async function uploadEventGalleryImages(id: string, files: File[], token: string): Promise<EventImageItem[]> {
+  if (!files || files.length === 0) return [];
+
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append('files', file);
+  });
+
+  const res = await fetch(`${API_BASE_URL}/api/events/${id}/images`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('UNAUTHORIZED');
+  }
+
+  if (!res.ok) {
+    const message = Array.isArray(json?.message)
+      ? json.message.join(', ')
+      : json?.message || 'Failed to upload event gallery images';
+    throw new Error(message);
+  }
+
+  if (json && json.success && Array.isArray(json.data)) {
+    return json.data;
+  }
+
+  throw new Error('Invalid response structure from backend API');
+}
+
+/**
+ * Delete a single gallery image via DELETE /api/events/:id/images/:imageId (Admin Protected)
+ */
+export async function deleteEventGalleryImage(id: string, imageId: string, token: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}/api/events/${id}/images/${imageId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('UNAUTHORIZED');
+  }
+
+  if (!res.ok) {
+    const json = await res.json().catch(() => null);
+    throw new Error(json?.message || 'Failed to delete gallery image');
+  }
+
+  return true;
 }

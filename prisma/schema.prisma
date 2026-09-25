@@ -95,8 +95,24 @@ model Event {
   // Relationships
   attendanceSessions AttendanceSession[]
   attendances        Attendance[]
+  images             EventImage[]
 
   @@map("events")
+}
+
+/// EventImage entity representing individual photo gallery items for an event
+model EventImage {
+  id         String   @id @default(uuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  storageKey String
+  imageUrl   String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([eventId])
+  @@index([eventId, sortOrder])
+  @@map("event_images")
 }
 
 /// AttendanceSession entity representing temporary event-specific QR sessions

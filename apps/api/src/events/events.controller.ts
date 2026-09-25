@@ -9,9 +9,10 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   Res,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -66,11 +67,57 @@ export class EventsController {
     return this.eventsService.deleteBanner(id);
   }
 
+  @Post(':id/images')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(FilesInterceptor('files', 10))
+  async uploadGalleryImages(
+    @Param('id') id: string,
+    @UploadedFiles() files: StorageFile[],
+    @UploadedFile() singleFile?: StorageFile,
+  ) {
+    const fileList = files && files.length > 0 ? files : (singleFile ? [singleFile] : []);
+    return this.eventsService.uploadGalleryImages(id, fileList);
+  }
+
+  @Get(':id/images')
+  async getEventImages(@Param('id') id: string) {
+    return this.eventsService.getEventImages(id);
+  }
+
+  @Delete(':id/images/:imageId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async deleteGalleryImage(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+  ) {
+    return this.eventsService.deleteGalleryImage(id, imageId);
+  }
+
   @Get('uploads/banners/:filename')
   async getBannerImage(@Param('filename') filename: string, @Res() res: Response) {
     const { stream, mimetype, contentLength } = await this.storageService.getFileStream(
       filename,
       'banners',
+    );
+
+    res.setHeader('Content-Type', mimetype);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    if (contentLength) {
+      res.setHeader('Content-Length', contentLength.toString());
+    }
+
+    return stream.pipe(res);
+  }
+
+  @Get('uploads/event-images/:filename')
+  async getGalleryImage(@Param('filename') filename: string, @Res() res: Response) {
+    const { stream, mimetype, contentLength } = await this.storageService.getFileStream(
+      filename,
+      'event-images',
     );
 
     res.setHeader('Content-Type', mimetype);

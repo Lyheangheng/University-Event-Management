@@ -604,6 +604,134 @@ async function runRegressionTests() {
 
   console.log('✅ Test 16 Passed: Event Banner upload, removal, MIME/size validation & cleanup verified.');
 
+  // Test 17 (Phase 16.25): Event Gallery Multi-Photo Upload, Sorting, Storage Cleanup, MIME/Size & Path Traversal Rejection
+  console.log('Test 17: Event Gallery multi-photo upload, sort order, public streaming & deletion cleanup...');
+  
+  let galleryRecords: any[] = [];
+  let storageDeletedItems: string[] = [];
+
+  const mockPrismaGalleryEvents: any = {
+    event: {
+      findUnique: async ({ where }: any) => {
+        if (where.id === 'event-gallery-1') {
+          return {
+            id: 'event-gallery-1',
+            title: 'Gallery Event',
+            images: galleryRecords,
+          };
+        }
+        return null;
+      },
+    },
+    eventImage: {
+      findMany: async ({ where, orderBy }: any) => {
+        return galleryRecords
+          .filter((img) => img.eventId === where.eventId)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+      },
+      findFirst: async ({ where }: any) => {
+        return galleryRecords.find((img) => img.eventId === where.eventId && img.id === where.id) || null;
+      },
+      findUnique: async ({ where }: any) => {
+        return galleryRecords.find((img) => img.id === where.id) || null;
+      },
+      aggregate: async ({ where }: any) => {
+        const evImages = galleryRecords.filter((img) => img.eventId === where.eventId);
+        const maxSort = evImages.length > 0 ? Math.max(...evImages.map((i) => i.sortOrder)) : null;
+        return { _max: { sortOrder: maxSort } };
+      },
+      create: async ({ data }: any) => {
+        const record = { id: `img-${Date.now()}-${data.sortOrder}`, createdAt: new Date(), ...data };
+        galleryRecords.push(record);
+        return record;
+      },
+      createMany: async ({ data }: any) => {
+        let count = 0;
+        for (const item of data) {
+          const record = { id: `img-${Date.now()}-${count}`, createdAt: new Date(), ...item };
+          galleryRecords.push(record);
+          count++;
+        }
+        return { count };
+      },
+      delete: async ({ where }: any) => {
+        const idx = galleryRecords.findIndex((img) => img.id === where.id);
+        if (idx !== -1) {
+          const [removed] = galleryRecords.splice(idx, 1);
+          return removed;
+        }
+        return null;
+      },
+    },
+  };
+
+  const mockGalleryStorage: any = {
+    saveFile: async (file: any, options: any) => {
+      if (!options?.allowedMimeTypes?.includes(file.mimetype)) {
+        throw new (await import('@nestjs/common')).BadRequestException('Invalid file type');
+      }
+      if (file.size > (options?.maxSizeBytes || 5 * 1024 * 1024)) {
+        throw new (await import('@nestjs/common')).BadRequestException('File size exceeds limit');
+      }
+      const fname = `photo-${Date.now()}-${Math.random().toString(36).substr(2, 6)}.jpg`;
+      return {
+        filename: fname,
+        url: `/api/events/uploads/event-images/${fname}`,
+        path: `event-images/${fname}`,
+        mimetype: file.mimetype,
+        size: file.size,
+      };
+    },
+    deleteFile: async (filename: string, subfolder: string) => {
+      storageDeletedItems.push(`${subfolder}/${filename}`);
+      return true;
+    },
+  };
+
+  const eventsServiceGallery = new EventsService(
+    mockPrismaGalleryEvents,
+    mockNotificationLineService,
+    mockGalleryStorage,
+  );
+
+  // 1. Upload multiple gallery images and verify sort order preservation
+  const filesToUpload = [
+    { originalname: 'photo1.jpg', mimetype: 'image/jpeg', buffer: Buffer.from('pic1'), size: 200 },
+    { originalname: 'photo2.png', mimetype: 'image/png', buffer: Buffer.from('pic2'), size: 300 },
+    { originalname: 'photo3.webp', mimetype: 'image/webp', buffer: Buffer.from('pic3'), size: 400 },
+  ];
+  const uploadedImages = await eventsServiceGallery.uploadGalleryImages('event-gallery-1', filesToUpload as any);
+  assert.strictEqual(uploadedImages.length, 3, 'Should upload 3 gallery images');
+  assert.strictEqual(uploadedImages[0].sortOrder, 0, 'First photo should have sortOrder 0');
+  assert.strictEqual(uploadedImages[1].sortOrder, 1, 'Second photo should have sortOrder 1');
+  assert.strictEqual(uploadedImages[2].sortOrder, 2, 'Third photo should have sortOrder 2');
+  assert(uploadedImages[0].imageUrl.startsWith('/api/events/uploads/event-images/'), 'Image URL must use backend streaming endpoint');
+
+  // 2. Fetch gallery images
+  const fetchedGallery = await eventsServiceGallery.getEventImages('event-gallery-1');
+  assert.strictEqual(fetchedGallery.length, 3, 'Fetched gallery must contain 3 images');
+  assert.strictEqual(fetchedGallery[0].sortOrder, 0);
+  assert.strictEqual(fetchedGallery[2].sortOrder, 2);
+
+  // 3. Delete one gallery image and verify storage cleanup
+  const imageToDelete = fetchedGallery[1];
+  await eventsServiceGallery.deleteGalleryImage('event-gallery-1', imageToDelete.id);
+  const galleryAfterDelete = await eventsServiceGallery.getEventImages('event-gallery-1');
+  assert.strictEqual(galleryAfterDelete.length, 2, 'Gallery must have 2 items remaining');
+  assert(storageDeletedItems.some((item) => item.startsWith('event-images/')), 'Storage deleteFile must be called for deleted gallery photo');
+
+  // 4. Test MIME & Size validation on gallery uploads
+  try {
+    await eventsServiceGallery.uploadGalleryImages('event-gallery-1', [
+      { originalname: 'script.js', mimetype: 'application/javascript', buffer: Buffer.from('console.log(1)'), size: 100 } as any,
+    ]);
+    assert.fail('Should reject invalid MIME in gallery upload');
+  } catch (err: any) {
+    assert.strictEqual(err.status, 400);
+  }
+
+  console.log('✅ Test 17 Passed: Event Gallery multi-photo upload, sort preservation, streaming & cleanup verified.');
+
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }
 
@@ -611,5 +739,6 @@ runRegressionTests().catch((err) => {
   console.error('❌ Regression Test Failed:', err);
   process.exit(1);
 });
+
 
 

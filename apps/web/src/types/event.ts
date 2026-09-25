@@ -4,6 +4,15 @@ export interface EventCreator {
   name: string;
 }
 
+export interface EventImageItem {
+  id: string;
+  eventId: string;
+  storageKey: string;
+  imageUrl: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
 export interface EventItem {
   id: string;
   title: string;
@@ -14,6 +23,7 @@ export interface EventItem {
   location: string;
   targetGroup: string;
   imageUrl?: string | null;
+  images?: EventImageItem[];
   createdById?: string | null;
   createdBy?: EventCreator | null;
   createdAt: string;

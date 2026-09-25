@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { fetchEventById, updateEvent, uploadEventBanner, deleteEventBanner } from '../../../../../lib/api';
+import { fetchEventById, updateEvent, uploadEventBanner, deleteEventBanner, uploadEventGalleryImages, deleteEventGalleryImage } from '../../../../../lib/api';
+import { EventImageItem } from '../../../../../types/event';
+import { getEventImageUrl } from '../../../../../lib/formatters';
 
 export default function EditEventPage() {
   const params = useParams();
@@ -26,6 +28,12 @@ export default function EditEventPage() {
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [bannerRemoved, setBannerRemoved] = useState(false);
+
+  // Gallery states
+  const [existingImages, setExistingImages] = useState<EventImageItem[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
+  const [newGalleryPreviews, setNewGalleryPreviews] = useState<{ file: File; previewUrl: string }[]>([]);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -57,6 +65,42 @@ export default function EditEventPage() {
     setBannerPreview(null);
     setImageUrl('');
     setBannerRemoved(true);
+  };
+
+  const handleDeleteExistingImage = (imageId: string) => {
+    setDeletedImageIds((prev) => [...prev, imageId]);
+    setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+  };
+
+  const handleNewGalleryFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const validFiles: File[] = [];
+    const validPreviews: { file: File; previewUrl: string }[] = [];
+
+    for (const f of files) {
+      if (!allowedTypes.includes(f.type.toLowerCase())) {
+        setError(`File "${f.name}" has an invalid type. Only JPEG, PNG, and WebP are allowed.`);
+        return;
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        setError(`File "${f.name}" exceeds the 5MB maximum limit.`);
+        return;
+      }
+      validFiles.push(f);
+      validPreviews.push({ file: f, previewUrl: URL.createObjectURL(f) });
+    }
+
+    setNewGalleryFiles((prev) => [...prev, ...validFiles]);
+    setNewGalleryPreviews((prev) => [...prev, ...validPreviews]);
+  };
+
+  const handleRemoveNewGalleryFile = (index: number) => {
+    setNewGalleryFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Helper to format Date to YYYY-MM-DD
@@ -107,6 +151,7 @@ export default function EditEventPage() {
       setLocation(eventData.location);
       setTargetGroup(eventData.targetGroup || 'All Students');
       setImageUrl(eventData.imageUrl || '');
+      setExistingImages(eventData.images || []);
     } catch (err: any) {
       if (err.message === 'EVENT_NOT_FOUND') {
         setError('EVENT_NOT_FOUND');
@@ -162,6 +207,18 @@ export default function EditEventPage() {
       } else if (bannerFile) {
         const uploadRes = await uploadEventBanner(bannerFile, token);
         finalImageUrl = uploadRes.url;
+      }
+
+      // Delete marked gallery images
+      if (deletedImageIds.length > 0) {
+        for (const imgId of deletedImageIds) {
+          await deleteEventGalleryImage(id, imgId, token).catch(() => null);
+        }
+      }
+
+      // Upload new gallery photos
+      if (newGalleryFiles.length > 0) {
+        await uploadEventGalleryImages(id, newGalleryFiles, token);
       }
 
       await updateEvent(
@@ -409,20 +466,85 @@ export default function EditEventPage() {
               </div>
             </div>
           )}
+        </div>
 
-          {/* Secondary External URL Fallback */}
-          {!bannerFile && (
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => {
-                setImageUrl(e.target.value);
-                if (e.target.value) setBannerRemoved(false);
-              }}
-              placeholder="Or paste external image URL: https://..."
-              className="w-full bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-300 outline-none focus:border-indigo-500 transition-colors"
-            />
+        {/* Event Photos Gallery Management */}
+        <div className="space-y-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block flex items-center gap-2">
+              <span>📸 Event Photos Gallery</span>
+              <span className="text-slate-500 font-normal">({existingImages.length + newGalleryFiles.length} total)</span>
+            </label>
+            <span className="text-[10px] text-slate-500 font-medium">JPEG, PNG, WebP</span>
+          </div>
+
+          {/* Existing Gallery Photos Grid */}
+          {existingImages.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-[11px] font-semibold text-slate-400 block">Existing Gallery Photos</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {existingImages.map((imgItem) => {
+                  const resolvedUrl = getEventImageUrl(imgItem.imageUrl);
+                  if (!resolvedUrl) return null;
+                  return (
+                    <div key={imgItem.id} className="relative h-28 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={resolvedUrl} alt="Existing Gallery Photo" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExistingImage(imgItem.id)}
+                          className="p-1.5 rounded-lg bg-rose-600 text-white font-bold text-[10px]"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
+
+          {/* Add New Gallery Photos */}
+          <div className="space-y-2 pt-2 border-t border-slate-800/60">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <label className="w-full sm:w-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 font-bold text-xs transition-all">
+                <span>🖼️ Add New Photos</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handleNewGalleryFilesChange}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-xs text-slate-500">
+                {newGalleryFiles.length > 0 ? `${newGalleryFiles.length} new photo(s) queued` : 'Select photos to add to this event'}
+              </span>
+            </div>
+
+            {/* New Gallery Photo Previews */}
+            {newGalleryPreviews.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                {newGalleryPreviews.map((item, idx) => (
+                  <div key={idx} className="relative h-28 rounded-xl overflow-hidden border border-indigo-500/50 bg-slate-950 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.previewUrl} alt={`New gallery preview ${idx + 1}`} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNewGalleryFile(idx)}
+                        className="p-1.5 rounded-lg bg-rose-600 text-white font-bold text-[10px]"
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Submit Actions */}

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { EventItem } from '../types/event';
-import { formatEventDate, formatTimeRange, calculateEventStatus } from '../lib/formatters';
+import { formatEventDate, formatTimeRange, calculateEventStatus, getEventImageUrl } from '../lib/formatters';
 
 interface EventCardProps {
   event: EventItem;
@@ -15,6 +15,10 @@ export function EventCard({ event }: EventCardProps) {
   const [imageError, setImageError] = useState(false);
 
   const status = calculateEventStatus(event.startTime, event.endTime);
+
+  const displayImageUrl = getEventImageUrl(event.imageUrl) || (
+    event.images && event.images.length > 0 ? getEventImageUrl(event.images[0].imageUrl) : null
+  );
 
   const getStatusBadge = () => {
     switch (status) {
@@ -46,10 +50,10 @@ export function EventCard({ event }: EventCardProps) {
     <div className="group bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-indigo-950/30">
       {/* Image / Fallback Container */}
       <div className="relative w-full h-44 bg-slate-950 flex items-center justify-center overflow-hidden">
-        {event.imageUrl && !imageError ? (
+        {displayImageUrl && !imageError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={event.imageUrl}
+            src={displayImageUrl}
             alt={event.title}
             onError={() => setImageError(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

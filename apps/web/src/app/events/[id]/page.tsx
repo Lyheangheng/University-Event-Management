@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { EventItem } from '../../../types/event';
 import { fetchEventById } from '../../../lib/api';
-import { formatEventDate, formatTimeRange, calculateEventStatus } from '../../../lib/formatters';
+import { formatEventDate, formatTimeRange, calculateEventStatus, getEventImageUrl } from '../../../lib/formatters';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { ErrorState } from '../../../components/ui/ErrorState';
 
@@ -17,6 +17,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<boolean>(false);
+  const [activeLightbox, setActiveLightbox] = useState<string | null>(null);
 
   const loadEvent = useCallback(async () => {
     if (!id) return;
@@ -85,9 +86,33 @@ export default function EventDetailPage() {
   }
 
   const status = calculateEventStatus(event.startTime, event.endTime);
+  const bannerUrl = getEventImageUrl(event.imageUrl);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8 font-sans">
+      {/* Lightbox Modal */}
+      {activeLightbox && (
+        <div
+          onClick={() => setActiveLightbox(null)}
+          className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+        >
+          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={activeLightbox}
+              alt="Enlarged photo"
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-slate-700"
+            />
+            <button
+              onClick={() => setActiveLightbox(null)}
+              className="mt-4 px-6 py-2 rounded-full bg-slate-900 border border-slate-700 text-slate-200 font-bold text-xs hover:bg-slate-800 transition-all"
+            >
+              ✕ Close Preview
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Back Navigation ONLY (Public student page) */}
       <div className="flex items-center justify-between">
         <Link
@@ -103,25 +128,18 @@ export default function EventDetailPage() {
 
       {/* Main Event Article Container */}
       <article className="bg-slate-900/70 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl shadow-indigo-950/20 backdrop-blur-xl">
-        {/* Event Banner Image or Placeholder */}
-        <div className="relative w-full h-64 sm:h-96 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800/80">
-          {event.imageUrl && !imageError ? (
-            // eslint-disable-next-line @next/next/no-img-element
+        {/* Event Banner Image */}
+        {bannerUrl && !imageError ? (
+          <div className="relative w-full h-64 sm:h-96 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800/80">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={event.imageUrl}
+              src={bannerUrl}
               alt={event.title}
               onError={() => setImageError(true)}
               className="w-full h-full object-cover"
             />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-indigo-950/80 via-slate-900 to-slate-950 flex flex-col items-center justify-center gap-3 p-6 text-slate-500">
-              <svg className="w-16 h-16 text-indigo-500/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="text-sm font-medium text-slate-400">University Event Banner</span>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : null}
 
         {/* Content Body */}
         <div className="p-6 sm:p-10 space-y-8">
@@ -193,6 +211,47 @@ export default function EventDetailPage() {
               {event.description}
             </div>
           </div>
+
+          {/* Event Photo Gallery Grid */}
+          {event.images && event.images.length > 0 && (
+            <div className="space-y-4 pt-6 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-2">
+                  <span>📸 Event Gallery</span>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
+                    {event.images.length} photos
+                  </span>
+                </h2>
+                <span className="text-[10px] text-slate-500">Click any photo to enlarge</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {event.images.map((imgItem) => {
+                  const imgUrl = getEventImageUrl(imgItem.imageUrl);
+                  if (!imgUrl) return null;
+                  return (
+                    <div
+                      key={imgItem.id}
+                      onClick={() => setActiveLightbox(imgUrl)}
+                      className="group relative h-48 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-indigo-500/60 transition-all duration-300 cursor-pointer shadow-lg"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgUrl}
+                        alt="Event Gallery Photo"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="p-2 rounded-full bg-indigo-600/80 text-white text-xs font-bold shadow-lg">
+                          🔍 View
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </article>
     </div>

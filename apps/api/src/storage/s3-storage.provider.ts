@@ -286,7 +286,9 @@ export class S3StorageProvider implements StorageProvider {
     subfolder = 'proofs',
   ): string {
     const safeFilename = path.basename(filename);
-
+    if (subfolder === 'banners' || subfolder === 'event-images') {
+      return `/api/events/uploads/${subfolder}/${safeFilename}`;
+    }
     return `${this.publicBaseUrl}/${subfolder}/${safeFilename}`;
   }
 }

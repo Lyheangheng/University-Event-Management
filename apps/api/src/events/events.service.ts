@@ -58,6 +58,11 @@ export class EventsService {
             name: true,
           },
         },
+        images: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
       },
     });
 
@@ -92,6 +97,11 @@ export class EventsService {
             name: true,
           },
         },
+        images: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
       },
     });
   }
@@ -108,6 +118,11 @@ export class EventsService {
             id: true,
             username: true,
             name: true,
+          },
+        },
+        images: {
+          orderBy: {
+            sortOrder: 'asc',
           },
         },
       },
@@ -156,6 +171,11 @@ export class EventsService {
             id: true,
             username: true,
             name: true,
+          },
+        },
+        images: {
+          orderBy: {
+            sortOrder: 'asc',
           },
         },
       },
@@ -356,5 +376,103 @@ export class EventsService {
 
     this.logger.log(`Removed banner image from event '${eventId}'`);
     return updatedEvent;
+  }
+
+  /**
+   * Helper to extract gallery image filename from URL or key
+   */
+  private extractGalleryFilename(imageUrl: string | null | undefined): string | null {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    try {
+      return extractAndSanitizeFilename(imageUrl);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Upload photo gallery images for an event
+   */
+  async uploadGalleryImages(eventId: string, files: StorageFile[]): Promise<any[]> {
+    await this.findEventById(eventId);
+
+    if (!files || files.length === 0) {
+      return [];
+    }
+
+    if (!this.storageService) {
+      throw new BadRequestException('Storage service is not configured');
+    }
+
+    const lastImage = await this.prisma.eventImage.findFirst({
+      where: { eventId },
+      orderBy: { sortOrder: 'desc' },
+    });
+    let nextSortOrder = lastImage ? lastImage.sortOrder + 1 : 0;
+
+    const createdImages: any[] = [];
+    for (const file of files) {
+      if (!file || !file.buffer || file.buffer.length === 0) continue;
+
+      const saved = await this.storageService.saveFile(file, {
+        subfolder: 'event-images',
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+        maxSizeBytes: 5 * 1024 * 1024,
+      });
+
+      const imageRecord = await this.prisma.eventImage.create({
+        data: {
+          eventId,
+          storageKey: saved.path,
+          imageUrl: saved.url,
+          sortOrder: nextSortOrder++,
+        },
+      });
+
+      createdImages.push(imageRecord);
+      this.logger.log(`Uploaded gallery photo '${saved.filename}' for event '${eventId}'`);
+    }
+
+    return createdImages;
+  }
+
+  /**
+   * Retrieve all gallery images for an event
+   */
+  async getEventImages(eventId: string): Promise<any[]> {
+    await this.findEventById(eventId);
+    return this.prisma.eventImage.findMany({
+      where: { eventId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  /**
+   * Delete single gallery image from an event
+   */
+  async deleteGalleryImage(eventId: string, imageId: string): Promise<{ id: string; deleted: boolean }> {
+    await this.findEventById(eventId);
+
+    const imageRecord = await this.prisma.eventImage.findFirst({
+      where: { id: imageId, eventId },
+    });
+
+    if (!imageRecord) {
+      throw new NotFoundException(`Gallery image '${imageId}' not found for event '${eventId}'`);
+    }
+
+    const filename = this.extractGalleryFilename(imageRecord.imageUrl) || this.extractGalleryFilename(imageRecord.storageKey);
+    if (filename && this.storageService) {
+      await this.storageService.deleteFile(filename, 'event-images').catch((err) => {
+        this.logger.warn(`Failed to delete gallery image object '${filename}': ${err?.message || err}`);
+      });
+    }
+
+    await this.prisma.eventImage.delete({
+      where: { id: imageId },
+    });
+
+    this.logger.log(`Deleted gallery image '${imageId}' from event '${eventId}'`);
+    return { id: imageId, deleted: true };
   }
 }

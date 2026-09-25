@@ -67,3 +67,36 @@ export function calculateEventStatus(startTimeString: string, endTimeString: str
     return 'UPCOMING';
   }
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+/**
+ * Resolves event image URL to usable HTTP/S URL for web browser <img src>
+ */
+export function getEventImageUrl(rawUrl: string | null | undefined): string | null {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+
+  // Relative API route -> prepend API_BASE_URL
+  if (trimmed.startsWith('/api/')) {
+    return `${API_BASE_URL}${trimmed}`;
+  }
+
+  // Cloudflare R2 raw S3 endpoint -> route through safe public streaming backend endpoint
+  if (trimmed.includes('r2.cloudflarestorage.com')) {
+    try {
+      const parsed = new URL(trimmed);
+      const pathParts = parsed.pathname.split('/').filter(Boolean);
+      const filename = pathParts[pathParts.length - 1];
+      let subfolder = 'banners';
+      if (pathParts.includes('event-images')) subfolder = 'event-images';
+      return `${API_BASE_URL}/api/events/uploads/${subfolder}/${filename}`;
+    } catch {
+      // Fallback
+    }
+  }
+
+  return trimmed;
+}

@@ -160,6 +160,9 @@ export class LocalStorageProvider implements StorageProvider {
 
   getPublicUrl(filename: string, subfolder = 'proofs'): string {
     const safeFilename = path.basename(filename);
+    if (subfolder === 'banners' || subfolder === 'event-images') {
+      return `/api/events/uploads/${subfolder}/${safeFilename}`;
+    }
     return `/api/attendance/uploads/${subfolder}/${safeFilename}`;
   }
 }

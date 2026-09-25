@@ -1,0 +1,154 @@
+================================================================================
+PHASE 16.25 — EVENT GALLERY + EVENT IMAGE DISPLAY FIX REPORT
+================================================================================
+
+1. OBJECTIVE
+--------------------------------------------------------------------------------
+Phase 16.25 resolves the production event banner rendering failure and introduces
+multi-photo event gallery support. Admin users can optionally upload a banner image
+and/or multiple event gallery photos. Public and student users can view full-res
+event photos in a responsive gallery grid with lightbox modal previews on the event
+detail page.
+
+2. ROOT CAUSE OF PHASE 16.24 BANNER DISPLAY BUG
+--------------------------------------------------------------------------------
+"Banner display failed because uploaded Cloudflare R2 object URLs 
+(https://<account-id>.r2.cloudflarestorage.com/...) require AWS SigV4 authentication
+headers for direct HTTP GET access, causing unauthenticated browser <img src="..."> 
+requests to fail with HTTP 401/403. Furthermore, relative local endpoint paths 
+(e.g., /api/events/uploads/banners/...) rendered on Vercel frontend resolved 
+relative to the Vercel domain instead of the NestJS Render backend server, causing 
+HTTP 404 Not Found."
+
+3. BANNER FIX
+--------------------------------------------------------------------------------
+- Standardized image URL resolution via `getEventImageUrl` helper in `formatters.ts`.
+- Relative backend streaming paths (`/api/events/uploads/banners/...`) are automatically
+  prepended with the backend API base URL (`NEXT_PUBLIC_API_URL`) when rendered on the frontend.
+- `S3StorageProvider` and `LocalStorageProvider` format public URLs to route through
+  the public backend streaming endpoint `GET /api/events/uploads/banners/:filename`.
+- Unauthenticated browser `<img src="...">` requests succeed with HTTP 200 and correct
+  `Content-Type` without exposing R2 AWS credentials or making the R2 bucket public.
+
+4. EVENTIMAGE DATABASE DESIGN
+--------------------------------------------------------------------------------
+Added `EventImage` model and `images EventImage[]` relation to `prisma/schema.prisma`:
+
+model EventImage {
+  id         String   @id @default(uuid())
+  eventId    String
+  storageKey String
+  imageUrl   String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([eventId, sortOrder])
+}
+
+- Cascading deletion: `onDelete: Cascade` ensures deleting an `Event` automatically
+  removes associated `EventImage` database records.
+
+5. MIGRATION
+--------------------------------------------------------------------------------
+- Updated `prisma/schema.prisma`.
+- Executed `npx prisma db push` to sync PostgreSQL schema with database.
+- Executed `npx prisma generate` to update Prisma Client types across monorepo.
+
+6. STORAGE DESIGN
+--------------------------------------------------------------------------------
+- Reused existing `S3StorageProvider` (Cloudflare R2) and `LocalStorageProvider`.
+- Isolated storage folder namespace: `event-images/` (e.g. `event-images/<unique-filename>`).
+- Safe filename generation using server-generated unique prefixes and sanitized basenames.
+- Storage credentials remain strictly server-side in NestJS backend.
+
+7. API ENDPOINTS
+--------------------------------------------------------------------------------
+- `POST /api/events/:id/images` (Admin JWT required)
+  Upload single or multiple gallery photos for an event. Preserves upload order.
+- `GET /api/events/:id/images` (Public)
+  Retrieve list of `EventImage` objects sorted by `sortOrder`.
+- `DELETE /api/events/:id/images/:imageId` (Admin JWT required)
+  Deletes `EventImage` database record and purges R2 storage object.
+- `GET /api/events/uploads/event-images/:filename` (Public Streaming)
+  Safely streams gallery photo from R2/LocalStorage with traversal guards and cache headers.
+
+8. ADMIN UX
+--------------------------------------------------------------------------------
+- Create Event (`/admin/events/new`):
+  - Optional banner upload with preview and removal.
+  - Multi-photo gallery selection with instant local previews and individual removal.
+- Edit Event (`/admin/events/[id]/edit`):
+  - Display existing banner with Replace/Remove controls.
+  - Display existing gallery photos with individual Delete buttons (triggers instant API delete & R2 purge).
+  - Add new gallery photos with local previews before saving.
+
+9. PUBLIC / STUDENT UX
+--------------------------------------------------------------------------------
+- `EventCard`:
+  - Thumbnail order: Banner image -> First Gallery photo -> Fallback UI gradient badge.
+  - Banner is completely optional.
+- Event Detail (`/events/[id]`):
+  - Displays banner image if available.
+  - Displays responsive Photo Gallery Grid (3 columns on desktop, 2 on mobile).
+  - Lightbox Preview Modal on photo click with full-screen view and image counter.
+
+10. SECURITY
+--------------------------------------------------------------------------------
+- Admin JWT required for gallery upload and image deletion endpoints.
+- Path traversal protection via `extractAndSanitizeFilename` (rejects `../`, `%2f`, null bytes).
+- MIME validation restricted strictly to `image/jpeg`, `image/png`, `image/webp`.
+- File size capped at 5 MB per image.
+- R2 credentials never exposed to browser context.
+
+11. BACKWARD COMPATIBILITY
+--------------------------------------------------------------------------------
+- Existing external `imageUrl` values (e.g., Unsplash/CDN links) continue to render without modification.
+- Existing events without gallery images display fallback UI smoothly.
+- Attendance proof objects and QR logic remain untouched.
+
+12. TESTS WITH EXACT PASS/FAIL COUNTS
+--------------------------------------------------------------------------------
+Ran complete API regression test suite in `apps/api/src/attendance/attendance-regression.spec.ts`:
+
+- Total Tests Executed: 17
+- Passed: 17
+- Failed: 0
+
+Key test coverage:
+- Test 16: Event Banner Upload, Removal, MIME/Size Validation & Path Traversal Rejection
+- Test 17: Event Gallery Multi-Photo Upload, Sorting, Storage Cleanup, MIME/Size & Path Traversal Rejection
+
+13. API BUILD
+--------------------------------------------------------------------------------
+- Command: `npm run build` in `apps/api`
+- Result: PASSED (`nest build` completed cleanly with zero errors).
+
+14. WEB BUILD
+--------------------------------------------------------------------------------
+- Command: `npm run build` in `apps/web`
+- Result: PASSED (`next build` compiled 9/9 static and dynamic routes cleanly with zero errors).
+
+15. MANUAL CONFIGURATION REQUIRED
+--------------------------------------------------------------------------------
+None. Uses existing environment variables (`NEXT_PUBLIC_API_URL`, `S3_BUCKET`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`).
+
+16. KNOWN LIMITATIONS
+--------------------------------------------------------------------------------
+- Maximum 5MB per uploaded photo.
+- Supported file types restricted to JPEG, PNG, WebP.
+
+17. GIT COMMIT HASH
+--------------------------------------------------------------------------------
+- Hash: c875088
+- Message: feat: add event photo gallery
+
+18. SUGGESTED DEPLOYMENT / TESTING STEPS
+--------------------------------------------------------------------------------
+1. Deploy `apps/api` to Render (run `npx prisma db push` if running migration on production DB).
+2. Deploy `apps/web` to Vercel.
+3. Access `/admin/events/new` to create an event with a banner and 3 gallery photos.
+4. Access `/events/[id]` on public/mobile browser to test gallery grid and lightbox preview modal.
+================================================================================
