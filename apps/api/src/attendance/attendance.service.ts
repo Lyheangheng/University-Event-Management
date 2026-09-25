@@ -84,6 +84,32 @@ export class AttendanceService {
       // For now, Phase 16.19 removes the notification trigger from session creation because session != window open.
     }
 
+    // Trigger LINE push notification if server time is currently within the active attendance window
+    const serverNow = new Date();
+    const eventStartTime = new Date(event.startTime);
+    const eventEndTime = new Date(event.endTime);
+    let checkStart: Date;
+    let checkEnd: Date;
+    if (type === AttendanceSessionType.CHECK_IN) {
+      checkStart = eventStartTime;
+      checkEnd = new Date(eventStartTime.getTime() + 30 * 60 * 1000);
+    } else {
+      checkStart = new Date(eventEndTime.getTime() - 30 * 60 * 1000);
+      checkEnd = new Date(eventEndTime.getTime() + 30 * 60 * 1000);
+    }
+
+    if (serverNow >= checkStart && serverNow <= checkEnd) {
+      if (type === AttendanceSessionType.CHECK_IN) {
+        this.lineMessagingService.notifyCheckInOpened(event, session.token).catch((err) => {
+          this.logger.warn(`Failed to deliver CHECK_IN notification: ${err.message}`);
+        });
+      } else {
+        this.lineMessagingService.notifyCheckOutOpened(event, session.token).catch((err) => {
+          this.logger.warn(`Failed to deliver CHECK_OUT notification: ${err.message}`);
+        });
+      }
+    }
+
     return session;
   }
 
@@ -137,6 +163,19 @@ export class AttendanceService {
     }
 
     const isOpen = serverNow >= windowStart && serverNow <= windowEnd;
+
+    // Trigger LINE push notification if server time is currently within the active attendance window
+    if (isOpen) {
+      if (session.sessionType === AttendanceSessionType.CHECK_IN) {
+        this.lineMessagingService.notifyCheckInOpened(session.event, session.token).catch((err) => {
+          this.logger.warn(`Failed to deliver CHECK_IN notification: ${err.message}`);
+        });
+      } else {
+        this.lineMessagingService.notifyCheckOutOpened(session.event, session.token).catch((err) => {
+          this.logger.warn(`Failed to deliver CHECK_OUT notification: ${err.message}`);
+        });
+      }
+    }
 
     // We no longer throw an exception on fetch if it's outside the window,
     // so the frontend can display "Check-in is not currently open".

@@ -1,0 +1,146 @@
+================================================================================
+PHASE 16.23C: LINE CHECK-IN / CHECK-OUT NOTIFICATION DELIVERY AUDIT & FIX REPORT
+================================================================================
+
+1. OBJECTIVE
+--------------------------------------------------------------------------------
+Audit the production LINE check-in and check-out notification delivery system, determine the exact root cause of missing push notifications during active check-in and check-out windows, implement a minimal production-safe fix, verify all tests and builds, and outline manual production testing steps.
+
+2. CURRENT SYMPTOM
+--------------------------------------------------------------------------------
+- LINE Official Account ("University Events") friendship linking: WORKING
+- Event announcement notifications (triggered during event creation): WORKING
+- CHECK-IN notification: NOT APPEARING in LINE chat when check-in opens
+- CHECK-OUT notification: NOT APPEARING in LINE chat when check-out opens
+
+3. COMPLETE NOTIFICATION FLOW AUDIT
+--------------------------------------------------------------------------------
+CHECK-IN Flow Audit:
+- Event creation → persistent CHECK_IN session row exists in database with static token.
+- Window active: event.startTime <= serverNow <= event.startTime + 30 min.
+- Expected helper: LineMessagingService.notifyCheckInOpened(event, token).
+- Prior state: LineMessagingService.notifyCheckInOpened was defined in code, but had ZERO call sites across the entire NestJS API codebase.
+- Audit finding: The function was never invoked when check-in became active or when the session was requested by projector or student.
+
+CHECK-OUT Flow Audit:
+- Event creation → persistent CHECK_OUT session row exists in database with static token.
+- Window active: event.endTime - 30 min <= serverNow <= event.endTime + 30 min.
+- Expected helper: LineMessagingService.notifyCheckOutOpened(event, token).
+- Prior state: LineMessagingService.notifyCheckOutOpened was defined in code, but had ZERO call sites across the entire NestJS API codebase.
+- Audit finding: The function was never invoked when check-out became active or when the session was requested by projector or student.
+
+4. CHECK-IN TRIGGER ANALYSIS
+--------------------------------------------------------------------------------
+In Phase 16.19, attendance sessions were converted to persistent dual-QR codes (one CHECK_IN and one CHECK_OUT session created upfront per event).
+Because sessions are created when the event is saved (hours/days before the event starts), notification triggering was removed from session row creation to prevent premature notifications.
+However, no runtime trigger was attached to evaluate when the server time entered the active window (serverNow >= event.startTime && serverNow <= event.startTime + 30m).
+As a result, notifyCheckInOpened was orphaned with 0 invocation sites.
+
+5. CHECK-OUT TRIGGER ANALYSIS
+--------------------------------------------------------------------------------
+Identical to CHECK-IN: persistent session row creation occurs upfront.
+No background scheduler or session access hook triggered notifyCheckOutOpened when serverNow entered the check-out window (serverNow >= event.endTime - 30m && serverNow <= event.endTime + 30m).
+As a result, notifyCheckOutOpened was also orphaned with 0 invocation sites.
+
+6. RECIPIENT LOOKUP ANALYSIS
+--------------------------------------------------------------------------------
+LineMessagingService recipient query:
+  prisma.student.findMany({
+    where: { lineUserId: { not: null } },
+    select: { lineUserId: true },
+  })
+- Only students who completed LINE linking and have a non-null lineUserId in the Student table are selected.
+- Recently linked students (e.g. 66010001) possess a valid lineUserId and ARE included in this query.
+- Recipient selection logic is sound and matches the working event announcement flow.
+
+7. LINE API ANALYSIS
+--------------------------------------------------------------------------------
+LineMessagingService.sendPushMessage():
+- Endpoint: https://api.line.me/v2/bot/message/push
+- Method: POST
+- Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}
+- Target channel: "University Events" (Messaging API Official Account)
+- Environment variable LINE_CHANNEL_ACCESS_TOKEN is present and configured in production Render environment.
+- Verified working because event announcements successfully reach real LINE user accounts over this exact API method.
+
+8. PRODUCTION ENVIRONMENT ANALYSIS
+--------------------------------------------------------------------------------
+- Render production environment correctly executes NestJS backend tasks.
+- If no background cron/scheduler exists and no API route triggers the notification during active session retrieval, no notification dispatch occurs.
+- Render server cold starts or idle states do not clear past in-memory idempotency state unless the server restarts, but without a call site, timing was the primary structural failure.
+
+9. IDEMPOTENCY ANALYSIS
+--------------------------------------------------------------------------------
+LineMessagingService uses an in-memory Set (`sentNotifications`):
+- Key format for event announcement: `event_announcement_${event.id}`
+- Key format for check-in: `check_in_open_${event.id}`
+- Key format for check-out: `check_out_open_${event.id}`
+- Idempotency guarantees that even if getProjectorSession or getSessionByToken is called multiple times per second by projector displays or scanning students during the active window, the push message is sent EXACTLY ONCE per event.
+
+10. COMPARISON WITH WORKING EVENT ANNOUNCEMENT
+--------------------------------------------------------------------------------
+- Event Announcement: Explicitly invoked inside `EventsService.createEvent()` right after event creation. Thus, it was executed 100% of the time.
+- Check-In / Check-Out Notifications: Defined in `LineMessagingService`, but HAD ZERO CALL SITES in the API codebase following the Phase 16.19 persistent dual-QR refactoring.
+
+11. ROOT CAUSE
+--------------------------------------------------------------------------------
+`LineMessagingService.notifyCheckInOpened` and `LineMessagingService.notifyCheckOutOpened` were defined in `line-messaging.service.ts` but had **zero call sites** anywhere in `apps/api/src`. When persistent dual-QR sessions replaced dynamic session creation in Phase 16.19, session creation triggers were removed, but no active-window check was placed in the session fetch/projector endpoints (`getProjectorSession` and `getSessionByToken`).
+
+12. FIX APPLIED
+--------------------------------------------------------------------------------
+Updated `AttendanceService`:
+1. In `getProjectorSession()`: Added server time window check (`serverNow >= checkStart && serverNow <= checkEnd`). If the server time is within the active window, fire `notifyCheckInOpened` or `notifyCheckOutOpened`.
+2. In `getSessionByToken()`: Added server time window check (`isOpen === true`). When a session is loaded while active, fire `notifyCheckInOpened` or `notifyCheckOutOpened`.
+3. In-memory idempotency in `LineMessagingService` (`check_in_open_${event.id}` and `check_out_open_${event.id}`) ensures that the push message is sent **EXACTLY ONCE** per event, avoiding duplicate spam when the projector or students access the active session.
+
+13. EXACT FILES CHANGED
+--------------------------------------------------------------------------------
+1. `apps/api/src/attendance/attendance.service.ts`
+   - Added invocation of `lineMessagingService.notifyCheckInOpened` and `notifyCheckOutOpened` when active window is open during `getProjectorSession` and `getSessionByToken`.
+2. `apps/api/src/attendance/attendance-regression.spec.ts`
+   - Added Test 15 to verify that `getProjectorSession` and `getSessionByToken` trigger LINE check-in and check-out notifications when open.
+
+14. TESTING RESULTS
+--------------------------------------------------------------------------------
+- Ran `npm test` in `apps/api`:
+  - 15/15 tests PASSED (0 failed, 0 skipped).
+  - Test 11: EventsService createEvent triggers LINE announcement -> PASSED
+  - Test 13: getProjectorSession persistent QR identifiers -> PASSED
+  - Test 14: getSessionByToken validity logic -> PASSED
+  - Test 15: Check-in and Check-out LINE notification triggers verified -> PASSED
+
+15. BUILD RESULTS
+--------------------------------------------------------------------------------
+- API workspace (`apps/api`): `npm run build` -> PASSED (0 errors)
+- Web workspace (`apps/web`): `npm run build` -> PASSED (0 errors)
+
+16. MANUAL PRODUCTION TEST PROCEDURE
+--------------------------------------------------------------------------------
+1. Ensure test student account is linked to LINE Official Account "University Events".
+2. Log into Admin Panel: https://university-event-management-web-phi.vercel.app/admin
+3. Create a test event set to start in 2 minutes (e.g., startTime = Now + 2 mins, endTime = Now + 10 mins).
+4. Observe LINE chat: Recesses event announcement immediately upon event creation.
+5. Wait until startTime (e.g. 2 minutes later). Open the admin check-in projector display:
+   `/admin/events/[id]/projector/check-in`
+6. Observe Render backend logs & LINE chat:
+   - Log output: `Push message delivered successfully to LINE user '...'`
+   - LINE message received: "🔔 Check-In Window Open! Event: ..."
+7. Advance or wait until endTime (check-out window active). Open the admin check-out projector display:
+   `/admin/events/[id]/projector/check-out`
+8. Observe Render backend logs & LINE chat:
+   - Log output: `Push message delivered successfully to LINE user '...'`
+   - LINE message received: "🏁 Check-Out Window Open! Event: ..."
+
+17. REMAINING LIMITATIONS
+--------------------------------------------------------------------------------
+- Notifications trigger when either an Admin opens the Projector Page or a Student accesses/scans the session URL during the active attendance window.
+- If neither Admin nor Student accesses the session during the window, no HTTP request reaches the server to trigger the push message unless a scheduled background cron is added in the future.
+
+18. WHETHER DATABASE SCHEMA CHANGED
+--------------------------------------------------------------------------------
+NO. Database schema was NOT changed.
+
+19. WHETHER ENVIRONMENT VARIABLES CHANGED
+--------------------------------------------------------------------------------
+NO. Environment variables were NOT changed.
+================================================================================

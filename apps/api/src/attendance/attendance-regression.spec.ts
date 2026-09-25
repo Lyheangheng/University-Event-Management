@@ -455,6 +455,52 @@ async function runRegressionTests() {
   assert.strictEqual(fetchedCoSess.isValid, false, 'Should be invalid because checkout window is at endTime +/- 30m');
   console.log('✅ Test 14 Passed: getSessionByToken validity logic verified.');
 
+  // Test 15 (Phase 16.23C): Verify LINE check-in and check-out notification triggers when window is open
+  console.log('Test 15: getProjectorSession and getSessionByToken trigger LINE check-in and check-out notifications when open...');
+  let checkInTriggered = false;
+  let checkOutTriggered = false;
+  const mockNotificationLineService: any = {
+    notifyEventAnnouncement: async () => 1,
+    notifyCheckInOpened: async (evt: any, token: string) => {
+      checkInTriggered = true;
+      return 1;
+    },
+    notifyCheckOutOpened: async (evt: any, token: string) => {
+      checkOutTriggered = true;
+      return 1;
+    },
+  };
+  const attendanceServiceNotificationTest = new AttendanceService(
+    mockPrismaSessions,
+    mockConfig,
+    mockStorage,
+    mockJwt,
+    mockNotificationLineService,
+  );
+
+  // Active check-in session window
+  await attendanceServiceNotificationTest.getProjectorSession('event-persistent-1', 'CHECK_IN' as any);
+  assert.strictEqual(checkInTriggered, true, 'getProjectorSession should trigger notifyCheckInOpened when window is active');
+
+  // Active check-out session window
+  const activeCheckOutEvent = {
+    id: 'event-persistent-2',
+    title: 'Ending Event',
+    startTime: new Date(now - 120 * 60 * 1000),
+    endTime: new Date(now - 5 * 60 * 1000), // active checkout (within 30m of endTime)
+  };
+  mockPrismaSessions.attendanceSession.findUnique = async () => ({
+    id: 'sess-co-2',
+    sessionType: 'CHECK_OUT',
+    token: 'token-co-2',
+    startTime: new Date(now - 35 * 60 * 1000),
+    endTime: new Date(now + 25 * 60 * 1000),
+    event: activeCheckOutEvent,
+  });
+  await attendanceServiceNotificationTest.getSessionByToken('token-co-2', undefined, undefined);
+  assert.strictEqual(checkOutTriggered, true, 'getSessionByToken should trigger notifyCheckOutOpened when window is active');
+  console.log('✅ Test 15 Passed: Check-in and Check-out LINE notification triggers verified.');
+
   console.log('--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---');
 }
 
