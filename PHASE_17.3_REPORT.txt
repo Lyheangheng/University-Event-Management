@@ -1,0 +1,75 @@
+===============================================================================
+PHASE 17.3 — PROJECTOR / QR DISPLAY UI REDESIGN REPORT
+===============================================================================
+
+Date: 2026-09-26
+Project: University Event Management and Attendance Verification System
+Phase Scope: Projector / QR Display UI & UX Redesign ONLY
+
+-------------------------------------------------------------------------------
+1. OBJECTIVE & DESIGN PHILOSOPHY
+-------------------------------------------------------------------------------
+Phase 17.3 redesigned the event CHECK-IN and CHECK-OUT projector screens for
+distance readability, visual hierarchy, and institutional auditorium display feel.
+
+Key Design Goals Achieved:
+- Distance Readability: Large event titles (up to 6xl), high-contrast text,
+  and a very large focal QR code container (size 320px) optimized for 16:9
+  projectors and auditorium screens.
+- Strict Visual Hygiene:
+  - NO GRADIENTS
+  - NO GLOW & NO GLASSMORPHISM
+  - NO EMOJI FLUFF or DECORATIVE AI ART
+  - Generous whitespace around the QR code with unclipped margins.
+- Shared Theme Alignment: Reused the project color palette (#F7F7F5 background,
+  #FFFFFF surface cards, #1F2933 primary text, #667085 secondary text, #E5E7EB border,
+  #8B1E2D university maroon).
+
+-------------------------------------------------------------------------------
+2. COMPONENT & SCREEN REDESIGNS
+-------------------------------------------------------------------------------
+1. Enhanced QR Display Component (`apps/web/src/components/display/QrCodeDisplay.tsx`):
+   - Added custom size prop support (up to size=320) with high contrast white surface,
+     generous padding, clear Thai instructions ("สแกน QR Code นี้ด้วยแอปพลิเคชัน LINE"),
+     and restrained session status badge.
+
+2. Check-In Projector Screen (`apps/web/src/app/admin/events/[id]/projector/check-in/page.tsx`):
+   - Top Header Bar: University logo mark + "หน้าจอแสดงผลสถานที่จัดงาน (Projector Display)",
+     live real-time clock ("เวลาปัจจุบัน: HH:mm:ss น."), and an exit link.
+   - Main Auditorium Section:
+     - Clear session badge: `เช็กชื่อเข้าร่วมกิจกรรม (CHECK-IN)`
+     - Large event title & venue / date-time metadata.
+     - Central Focal QR: Large 320px QR code SVG with unclipped whitespace.
+     - Timing & Status Box: Shows exact opening time window (`ช่วงเวลาเปิดระบบ: 09:00 – 09:30 น.`)
+       and status banner (`เปิดรับลงชื่อเช็กอิน` or `ยังไม่อยู่ในช่วงเวลาเช็กอิน`).
+
+3. Check-Out Projector Screen (`apps/web/src/app/admin/events/[id]/projector/check-out/page.tsx`):
+   - Identical landscape-optimized composition matching Check-In page for visual consistency.
+   - Clear session badge: `เช็กชื่อออกจากกิจกรรม (CHECK-OUT)`
+   - Status banner: `เปิดรับลงชื่อเช็กเอาต์` or `ยังไม่อยู่ในช่วงเวลาเช็กเอาต์`.
+   - Timing info: Displays check-out window (`ช่วงเวลาเปิดระบบ: HH:mm – HH:mm น.`).
+
+-------------------------------------------------------------------------------
+3. FUNCTIONALITY PRESERVATION
+-------------------------------------------------------------------------------
+- QR code generation logic & token structure strictly untouched.
+- Backend session validation, check-in window (start + 30m), and check-out window
+  (end - 30m to end + 30m) untouched.
+- Admin JWT authentication & URL parameters strictly preserved.
+- No database schema or API contract changes introduced.
+
+-------------------------------------------------------------------------------
+4. VERIFICATION & BUILD RESULTS
+-------------------------------------------------------------------------------
+- NestJS Backend Regression Tests: 18/18 PASSED cleanly.
+- Next.js Web Application Production Build: PASSED successfully.
+
+-------------------------------------------------------------------------------
+5. FILES CHANGED
+-------------------------------------------------------------------------------
+- apps/web/src/components/display/QrCodeDisplay.tsx
+- apps/web/src/app/admin/events/[id]/projector/check-in/page.tsx
+- apps/web/src/app/admin/events/[id]/projector/check-out/page.tsx
+- PHASE_17.3_REPORT.txt (NEW)
+
+===============================================================================

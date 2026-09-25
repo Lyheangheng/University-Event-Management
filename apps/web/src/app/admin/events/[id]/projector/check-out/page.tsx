@@ -102,20 +102,34 @@ export default function CheckOutProjectorDisplayPage() {
   const windowEnd = new Date(eventEndTime.getTime() + 30 * 60 * 1000);
   const isOpen = currentTime >= windowStart && currentTime <= windowEnd;
 
+  const formattedWindowStart = windowStart.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const formattedWindowEnd = windowEnd.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
   return (
-    <div className="min-h-screen bg-[#F7F7F5] text-slate-900 flex flex-col justify-between p-4 sm:p-8 select-none font-sans overflow-x-hidden">
-      <header className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 pb-4 sm:pb-5 bg-white px-6 py-4 rounded-xl border shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <span className="w-3 h-3 rounded-full bg-amber-600" />
+    <div className="min-h-screen bg-[#F7F7F5] text-slate-900 flex flex-col justify-between p-4 sm:p-6 lg:p-8 select-none font-sans">
+      {/* Top Identity & Live Clock Header Bar */}
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-slate-200 px-6 py-3.5 rounded-xl shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-university-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+            มธ
+          </div>
           <div>
             <span className="text-xs sm:text-sm font-bold text-slate-900 block leading-tight">
-              หน้าจอแสดงผลสถานที่จัดงาน (Projector Display)
+              หน้าจอแสดงผลสำหรับสถานที่จัดงาน (Projector Display)
             </span>
-            <span className="text-[11px] text-slate-500 block">มหาวิทยาลัย</span>
+            <span className="text-[11px] text-slate-500 block">ระบบลงชื่อเข้าร่วมกิจกรรมมหาวิทยาลัย</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs sm:text-sm font-mono text-slate-700">
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs sm:text-sm font-mono text-slate-800">
           <span className="text-slate-500 font-sans">เวลาปัจจุบัน:</span>
           <span className="font-bold text-slate-900">{formattedLiveClock} น.</span>
         </div>
@@ -128,40 +142,76 @@ export default function CheckOutProjectorDisplayPage() {
         </Link>
       </header>
 
-      <main className="my-auto py-8 flex flex-col items-center justify-center text-center space-y-8">
-        <div className="space-y-2 max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight">
+      {/* Main Auditorium QR Display Content */}
+      <main className="my-auto py-6 flex flex-col items-center justify-center text-center space-y-6">
+        {/* Event Title Header */}
+        <div className="space-y-2 max-w-4xl mx-auto px-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-amber-600" />
+            เช็กชื่อออกจากกิจกรรม (CHECK-OUT)
+          </div>
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">
             {event.title}
           </h1>
           <p className="text-xs sm:text-base text-slate-600 font-medium">
-            {event.location} • {formatEventDate(event.date)} ({formatTimeRange(event.startTime, event.endTime)})
+            สถานที่: <strong>{event.location}</strong> • วันที่: <strong>{formatEventDate(event.date)}</strong> ({formatTimeRange(event.startTime, event.endTime)})
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 sm:gap-12">
-          <div className="space-y-4 text-center md:text-left max-w-sm">
-            {isOpen ? (
-              <div className="inline-block px-4 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-lg sm:text-2xl font-bold uppercase tracking-wide">
-                เปิดให้ลงชื่อเช็กเอาต์
-              </div>
-            ) : (
-              <div className="inline-block px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-800 text-lg sm:text-2xl font-bold uppercase tracking-wide">
-                ขณะนี้ยังไม่อยู่ในช่วงเวลาเช็กเอาต์
-              </div>
-            )}
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              สแกน QR Code นี้เพื่อลงชื่อออกจากกิจกรรม (เช็กเอาต์) ผ่านแอปพลิเคชัน LINE
-            </p>
+        {/* Central Focal QR Section */}
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 max-w-5xl w-full mx-auto px-4">
+          {/* Status & Timing Sidebar / Instruction Block */}
+          <div className="space-y-5 text-center lg:text-left max-w-sm">
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">สถานะระบบลงชื่อ</span>
+              {isOpen ? (
+                <div className="inline-block px-4 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-lg sm:text-2xl font-bold uppercase tracking-wide">
+                  เปิดรับลงชื่อเช็กเอาต์
+                </div>
+              ) : (
+                <div className="inline-block px-4 py-2 rounded-lg bg-[#F7F7F5] border border-slate-300 text-slate-700 text-lg sm:text-2xl font-bold uppercase tracking-wide">
+                  ยังไม่อยู่ในช่วงเวลาเช็กเอาต์
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 space-y-1.5 shadow-sm">
+              <span className="font-bold text-slate-900 block">กำหนดการเปิดระบบเช็กเอาต์:</span>
+              <p className="text-slate-600 font-mono text-sm font-bold">
+                {formattedWindowStart} – {formattedWindowEnd} น.
+              </p>
+              <p className="text-[11px] text-slate-500 leading-relaxed pt-1">
+                เปิดระบบช่วงท้ายกิจกรรม (ก่อนเวลาสิ้นสุด 30 นาที ถึงหลังเวลาสิ้นสุด 30 นาที)
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-700 space-y-1">
+              <span className="font-bold text-slate-900 block">คำแนะนำสำหรับนักศึกษา:</span>
+              <ol className="list-decimal list-inside space-y-1 text-slate-600 text-[11px]">
+                <li>สแกน QR Code ด้วยแอปพลิเคชัน LINE</li>
+                <li>แนบรูปภาพหลักฐานการเข้าร่วม ณ สถานที่จัดงาน</li>
+                <li>กดส่งข้อมูลเพื่อบันทึกการเช็กเอาต์สมบูรณ์</li>
+              </ol>
+            </div>
           </div>
-          
+
+          {/* LARGE FOCAL QR CODE */}
           {session && (
-            <QrCodeDisplay
-              sessionType="CHECK_OUT"
-              attendanceUrl={session.attendanceUrl}
-            />
+            <div className="shrink-0">
+              <QrCodeDisplay
+                sessionType="CHECK_OUT"
+                attendanceUrl={session.attendanceUrl}
+                size={320}
+              />
+            </div>
           )}
         </div>
       </main>
+
+      {/* Subtle Bottom Institutional Footer */}
+      <footer className="text-center text-xs text-slate-500 border-t border-slate-200 pt-3">
+        ระบบบริหารจัดการกิจกรรมและตรวจสอบการเข้าร่วม — มหาวิทยาลัย
+      </footer>
     </div>
   );
 }
