@@ -1,0 +1,125 @@
+==========================================================
+PHASE 17.4 — LINE / LIFF UI & VISUAL EXPERIENCE REDESIGN REPORT
+==========================================================
+
+1. OBJECTIVE
+----------------------------------------------------------
+Redesign the LINE / LIFF student-facing UI and Flex Message notifications so that the user experience feels like an authentic, polished university service used within LINE. All existing business logic, authentication, JWT tokens, LIFF initialization, attendance check-in/out workflows, gallery APIs, and notification triggers have been strictly preserved.
+
+2. EXISTING LIFF UI AUDIT
+----------------------------------------------------------
+- LIFF Event Detail (/events/[id]): Previously featured overly rounded cards, decorative floating elements, colorful pills, and excessive drop shadows.
+  -> Solution: Simplified page layout with a clear text hierarchy, subtle dividing lines, neutral surfaces, and clean event details (Title, Date/Time, Location, Description, Attendance block, Gallery).
+- Student Linking Screen (/attendance/session): Previously presented generic inputs with colorful hero containers.
+  -> Solution: Standardized institutional card design with neutral backgrounds, crisp label typography, and clear action button ("เชื่อมต่อบัญชี").
+- Attendance Actions & Proof Submission (/attendance/session/[token]):
+  -> Solution: Built clear read-only student identity badges, responsive check-in/check-out session status blocks, simple image upload dropzones, clear feedback text boxes, and calm confirmation/success message screens ("เช็กชื่อเรียบร้อยแล้ว").
+- Event Photo Gallery & Lightbox:
+  -> Solution: Clean 2-column mobile / 3-column desktop layout with standard aspect ratios, free of glow/borders, and a focused dark backdrop lightbox modal.
+- LINE Flex Message (apps/api/src/line/line-flex.builder.ts):
+  -> Solution: Replaced multi-color/emoji heavy cards with clean university announcement styling using the primary university maroon (#8B1E2D) brand action button and crisp date/time layout.
+
+3. DESIGN DIRECTION
+----------------------------------------------------------
+- Human-designed, mobile-first institutional aesthetic.
+- Zero AI-generated visual clutter (NO gradients, NO neon glow, NO glassmorphism, NO decorative art blobs, NO random emoji icons).
+- Clean spacing (8px, 12px, 16px, 24px, 32px), subtle 1px borders (#E5E7EB), and standard border radiuses (8px–12px).
+
+4. COLOR SYSTEM
+----------------------------------------------------------
+- Background: #F7F7F5
+- Card Surfaces: #FFFFFF
+- Primary Text: #1F2933
+- Muted / Secondary Text: #667085
+- Primary Brand Action: #8B1E2D (University Maroon)
+- Secondary Action: #F3F4F6 with #374151 text
+- Borders: #E5E7EB
+- Status Indicators: Restrained semantic green (#166534 / #DCFCE7), amber (#854D0E / #FEF9C3), and red (#991B1B / #FEE2E2).
+
+5. TYPOGRAPHY
+----------------------------------------------------------
+- Optimized for natural Thai readability using system font stacks (Inter, Sarabun, Thonburi, sans-serif).
+- Standard hierarchical font sizing (Event Title 24px/700, Section Title 18px/600, Body 15px/400, Muted captions 13px/400).
+
+6. EVENT DETAIL REDESIGN
+----------------------------------------------------------
+- High-priority display of event cover photo (restrained border radius, real event photo fallback).
+- Thai localized section headings: "วันและเวลา", "สถานที่", "รายละเอียดกิจกรรม", "การเข้าร่วมกิจกรรม", "รูปภาพกิจกรรม".
+- Structured block hierarchy without excessive card wrapping.
+
+7. ATTENDANCE REDESIGN
+----------------------------------------------------------
+- Clear session state messaging ("ยังไม่เปิดรับเช็กชื่อ", "เปิดรับเช็กชื่อ", "เช็กชื่อเรียบร้อยแล้ว", "หมดเวลาการเช็กชื่อ").
+- Clean photo proof upload surface with clear file details and removal options.
+
+8. STUDENT LINKING REDESIGN
+----------------------------------------------------------
+- Unlinked state: Simple student ID entry card explaining the necessity of linking for event check-in.
+- Linked state: Display student ID badge with minimal profile details.
+
+9. GALLERY REDESIGN
+----------------------------------------------------------
+- Mobile: 2 columns grid.
+- Desktop: 3 columns grid.
+- Consistent image aspect ratio with clean zoom-on-hover effect.
+
+10. LIGHTBOX REDESIGN
+----------------------------------------------------------
+- Dark backdrop (#0F172A opacity layer).
+- Dominant image presentation with top-right close control.
+
+11. FLEX MESSAGE REDESIGN
+----------------------------------------------------------
+- Clean announcement structure (Event image, Title, Thai date/time, Location, short description, primary action button "ดูรายละเอียด").
+- Replaced emoji-cluttered labels with clear Thai text strings.
+
+12. RESPONSIVE CHANGES
+----------------------------------------------------------
+- Targeted 320px, 375px, 390px, and 430px mobile screen widths first.
+- Adaptive desktop fallback layout ensuring centered content max-width container (max-w-xl / max-w-4xl).
+
+13. FUNCTIONALITY PRESERVED
+----------------------------------------------------------
+- LIFF SDK initialization and LINE Login authentication flow.
+- Bearer JWT token generation and validation.
+- Student account linking and identity verification.
+- Attendance check-in / check-out session window validation logic.
+- R2 secure image streaming endpoints and gallery upload APIs.
+- LINE Messaging API webhook handling & push notification triggers.
+
+14. FILES CHANGED
+----------------------------------------------------------
+- apps/api/src/line/line-flex.builder.ts
+- apps/web/src/app/events/[id]/page.tsx
+- apps/web/src/app/attendance/session/page.tsx
+- apps/web/src/app/attendance/session/[token]/page.tsx
+- apps/web/src/components/StudentAttendanceForm.tsx
+- apps/web/src/components/display/QrCodeDisplay.tsx
+- apps/web/src/app/admin/events/[id]/projector/check-in/page.tsx
+- apps/web/src/app/admin/events/[id]/projector/check-out/page.tsx
+
+15. TESTS PERFORMED
+----------------------------------------------------------
+- Backend regression suite: npm test --workspace=apps/api (Passed 18/18 tests).
+- Web application production build: npm run build --workspace=apps/web.
+
+16. BUILD RESULT
+----------------------------------------------------------
+- Next.js Web Application compiled successfully with 0 TypeScript/Lint errors and full static page generation.
+
+17. KNOWN LIMITATIONS
+----------------------------------------------------------
+- None.
+
+18. MANUAL CONFIGURATION REQUIRED
+----------------------------------------------------------
+- None. Ensure standard LINE LIFF App ID and Messaging API channel tokens are set in environment variables as established.
+
+19. GIT COMMIT HASH
+----------------------------------------------------------
+- ad34a28 (ad34a2805fe60e1ad6afe4acaabd04891f6db461)
+
+20. GIT COMMIT MESSAGE
+----------------------------------------------------------
+- feat: redesign line liff ui
+==========================================================

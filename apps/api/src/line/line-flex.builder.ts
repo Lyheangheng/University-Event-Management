@@ -100,8 +100,7 @@ export function buildEventAnnouncementFlexMessages(
     ? buildPublicImageUrl(rawPrimaryImage, 'banners', backendBaseUrl)
     : null;
 
-  // Useful altText for notification banner
-  const altText = `🎓 ${event.title}\n📅 ${dateStr}\n🕘 ${timeStr}\n📍 ${event.location}\n\nแตะเพื่อดูรายละเอียดกิจกรรม`;
+  const altText = `กิจกรรมมหาวิทยาลัย: ${event.title}\nวันที่: ${dateStr}\nเวลา: ${timeStr}\nสถานที่: ${event.location}`;
 
   // Build Hero component if primary image exists
   const heroComponent = primaryImageUrl
@@ -122,7 +121,7 @@ export function buildEventAnnouncementFlexMessages(
   // Build Main Event Announcement Bubble
   const mainBubbleContents: any[] = [];
 
-  // Fallback visual header if no image exists
+  // Visual header block with university brand color
   if (!primaryImageUrl) {
     mainBubbleContents.push({
       type: 'box',
@@ -134,7 +133,7 @@ export function buildEventAnnouncementFlexMessages(
       contents: [
         {
           type: 'text',
-          text: '🎓 กิจกรรมมหาวิทยาลัย',
+          text: 'ประกาศกิจกรรมมหาวิทยาลัย',
           color: '#FFFFFF',
           weight: 'bold',
           size: 'xs',
@@ -151,7 +150,7 @@ export function buildEventAnnouncementFlexMessages(
     weight: 'bold',
     size: 'xl',
     wrap: true,
-    color: '#111111',
+    color: '#1F2933',
   });
 
   // Event Metadata Details (Date, Time, Location)
@@ -166,8 +165,8 @@ export function buildEventAnnouncementFlexMessages(
         layout: 'baseline',
         spacing: 'sm',
         contents: [
-          { type: 'text', text: '📅', size: 'sm', flex: 1 },
-          { type: 'text', text: dateStr, size: 'sm', color: '#555555', flex: 9, wrap: true },
+          { type: 'text', text: 'วันที่:', size: 'xs', color: '#667085', weight: 'bold', flex: 3 },
+          { type: 'text', text: dateStr, size: 'xs', color: '#1F2933', flex: 7, wrap: true },
         ],
       },
       {
@@ -175,8 +174,8 @@ export function buildEventAnnouncementFlexMessages(
         layout: 'baseline',
         spacing: 'sm',
         contents: [
-          { type: 'text', text: '🕘', size: 'sm', flex: 1 },
-          { type: 'text', text: timeStr, size: 'sm', color: '#555555', flex: 9, wrap: true },
+          { type: 'text', text: 'เวลา:', size: 'xs', color: '#667085', weight: 'bold', flex: 3 },
+          { type: 'text', text: timeStr, size: 'xs', color: '#1F2933', flex: 7, wrap: true },
         ],
       },
       {
@@ -184,8 +183,8 @@ export function buildEventAnnouncementFlexMessages(
         layout: 'baseline',
         spacing: 'sm',
         contents: [
-          { type: 'text', text: '📍', size: 'sm', flex: 1 },
-          { type: 'text', text: event.location, size: 'sm', color: '#555555', flex: 9, wrap: true },
+          { type: 'text', text: 'สถานที่:', size: 'xs', color: '#667085', weight: 'bold', flex: 3 },
+          { type: 'text', text: event.location, size: 'xs', color: '#1F2933', flex: 7, wrap: true },
         ],
       },
     ],
@@ -197,8 +196,8 @@ export function buildEventAnnouncementFlexMessages(
       type: 'text',
       text: shortDesc,
       margin: 'lg',
-      size: 'sm',
-      color: '#666666',
+      size: 'xs',
+      color: '#667085',
       wrap: true,
     });
   }
@@ -224,7 +223,7 @@ export function buildEventAnnouncementFlexMessages(
             type: 'button',
             style: 'primary',
             height: 'sm',
-            color: '#06C755',
+            color: '#8B1E2D',
             action: {
               type: 'uri',
               label: 'ดูรายละเอียดกิจกรรม',
@@ -250,7 +249,6 @@ export function buildEventAnnouncementFlexMessages(
     }
 
     if (validGalleryUrls.length > 0) {
-      // LINE Flex Carousel supports max 12 bubbles
       const MAX_CAROUSEL_BUBBLES = 12;
       const photoBubbles: any[] = [];
 
@@ -290,15 +288,15 @@ export function buildEventAnnouncementFlexMessages(
                 type: 'text',
                 text: `+${validGalleryUrls.length - photoDisplayLimit} รูปเพิ่มเติม`,
                 weight: 'bold',
-                size: 'sm',
-                color: '#06C755',
+                size: 'xs',
+                color: '#8B1E2D',
                 align: 'center',
               },
               {
                 type: 'text',
                 text: 'ดูรูปภาพทั้งหมด',
-                size: 'xs',
-                color: '#888888',
+                size: 'xxs',
+                color: '#667085',
                 align: 'center',
                 margin: 'xs',
               },
@@ -314,7 +312,7 @@ export function buildEventAnnouncementFlexMessages(
 
       const activitiesCarouselMessage = {
         type: 'flex',
-        altText: `📸 รูปภาพกิจกรรม - ${event.title}`,
+        altText: `รูปภาพกิจกรรม - ${event.title}`,
         contents: {
           type: 'carousel',
           contents: photoBubbles,
@@ -327,4 +325,3 @@ export function buildEventAnnouncementFlexMessages(
 
   return { altText, messages };
 }
-
