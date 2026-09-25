@@ -48,13 +48,13 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-lg mx-auto px-4 py-6 space-y-6 animate-pulse font-sans">
-        <div className="w-24 h-6 bg-slate-800/60 rounded-lg" />
-        <div className="w-full h-60 bg-slate-800/60 rounded-3xl" />
+      <div className="w-full max-w-2xl mx-auto px-4 py-8 space-y-6 animate-pulse font-sans">
+        <div className="w-32 h-8 bg-slate-200 rounded-lg" />
+        <div className="w-full h-64 bg-slate-200 rounded-xl" />
         <div className="space-y-4 pt-2">
-          <div className="w-3/4 h-8 bg-slate-800/80 rounded-xl" />
-          <div className="w-full h-20 bg-slate-800/50 rounded-2xl" />
-          <div className="w-full h-32 bg-slate-800/40 rounded-2xl" />
+          <div className="w-3/4 h-8 bg-slate-200 rounded-lg" />
+          <div className="w-full h-24 bg-slate-200 rounded-xl" />
+          <div className="w-full h-32 bg-slate-200 rounded-xl" />
         </div>
       </div>
     );
@@ -63,20 +63,20 @@ export default function EventDetailPage() {
   if (error === 'NOT_FOUND') {
     return (
       <div className="w-full max-w-md mx-auto px-4 py-16 text-center space-y-6 font-sans">
-        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center mx-auto shadow-xl">
-          <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center mx-auto">
+          <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
-        <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-100">ไม่พบข้อมูลกิจกรรม</h1>
-          <p className="text-xs sm:text-sm text-slate-400">
+        <div className="space-y-1.5">
+          <h1 className="text-xl font-bold text-slate-900">ไม่พบข้อมูลกิจกรรม</h1>
+          <p className="text-xs sm:text-sm text-slate-600">
             กิจกรรมที่คุณค้นหาไม่มีอยู่ในระบบหรืออาจถูกลบออกไปแล้ว
           </p>
         </div>
         <Link
           href="/events"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-emerald-950/40"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs sm:text-sm font-semibold transition-colors shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -93,10 +93,6 @@ export default function EventDetailPage() {
 
   const status = calculateEventStatus(event.startTime, event.endTime);
 
-  // Image Priority:
-  // 1. Optional event banner (event.imageUrl)
-  // 2. First gallery photo (event.images[0].imageUrl)
-  // 3. Fallback UI
   let primaryRawUrl: string | null = null;
   if (event.imageUrl && typeof event.imageUrl === 'string' && event.imageUrl.trim()) {
     primaryRawUrl = event.imageUrl;
@@ -111,26 +107,26 @@ export default function EventDetailPage() {
   const galleryImages = event.images || [];
 
   return (
-    <div className="w-full max-w-xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-5 font-sans">
+    <div className="w-full max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-6 font-sans">
       {/* Lightbox Modal */}
       {activeLightboxIndex !== null && galleryImages[activeLightboxIndex] && (
         <div
           onClick={() => setActiveLightboxIndex(null)}
-          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-pointer"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center space-y-4"
+            className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center space-y-3"
           >
             {/* Lightbox Header / Counter */}
-            <div className="w-full flex items-center justify-between text-slate-300 text-xs font-semibold px-2">
-              <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-emerald-400">
+            <div className="w-full flex items-center justify-between text-slate-200 text-xs font-medium px-2">
+              <span>
                 รูปภาพที่ {activeLightboxIndex + 1} จาก {galleryImages.length}
               </span>
               <button
                 onClick={() => setActiveLightboxIndex(null)}
                 aria-label="ปิดรูปภาพ"
-                className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold"
+                className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-sm"
               >
                 ✕
               </button>
@@ -142,7 +138,7 @@ export default function EventDetailPage() {
               <img
                 src={getEventImageUrl(galleryImages[activeLightboxIndex].imageUrl) || ''}
                 alt={`รูปภาพกิจกรรมที่ ${activeLightboxIndex + 1}`}
-                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-slate-800"
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-xl"
               />
             </div>
 
@@ -157,9 +153,9 @@ export default function EventDetailPage() {
                     );
                   }}
                   aria-label="รูปภาพก่อนหน้า"
-                  className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-medium hover:bg-slate-700 transition-colors flex items-center gap-1"
                 >
-                  ← รูปภาพก่อนหน้า
+                  ← ก่อนหน้า
                 </button>
                 <button
                   onClick={(e) => {
@@ -169,9 +165,9 @@ export default function EventDetailPage() {
                     );
                   }}
                   aria-label="รูปภาพถัดไป"
-                  className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-medium hover:bg-slate-700 transition-colors flex items-center gap-1"
                 >
-                  รูปภาพถัดไป →
+                  ถัดไป →
                 </button>
               </div>
             )}
@@ -179,33 +175,33 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      {/* LINE Mobile Header Bar */}
-      <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800 px-4 py-2.5 rounded-2xl backdrop-blur-md shadow-md">
+      {/* Top Header / Back Link Bar */}
+      <div className="flex items-center justify-between bg-white border border-slate-200 px-4 py-3 rounded-xl shadow-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-sm font-black">
-            🎓
+          <div className="w-8 h-8 rounded-lg bg-university-50 border border-university-200/60 text-university-800 flex items-center justify-center text-xs font-bold shrink-0">
+            มหาวิทยาลัย
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-200 block leading-tight">กิจกรรมมหาวิทยาลัย</span>
-            <span className="text-[10px] text-slate-400 block">ข่าวสารกิจกรรมนักศึกษา</span>
+            <span className="text-xs font-bold text-slate-900 block leading-tight">รายละเอียดกิจกรรม</span>
+            <span className="text-[11px] text-slate-500 block">พอร์ตัลนักศึกษา</span>
           </div>
         </div>
         <Link
           href="/events"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-medium text-slate-300 hover:text-white transition-all"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700 transition-colors"
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           กิจกรรมทั้งหมด
         </Link>
       </div>
 
-      {/* Main Event Post Card */}
-      <article className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-950/10">
-        {/* Large Primary Event Image Hero */}
+      {/* Main Event Article Card */}
+      <article className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        {/* Banner Image */}
         {primaryImageUrl && !primaryImageError ? (
-          <div className="relative w-full h-56 sm:h-72 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800">
+          <div className="relative w-full h-56 sm:h-72 bg-slate-100 border-b border-slate-200">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={primaryImageUrl}
@@ -215,13 +211,15 @@ export default function EventDetailPage() {
             />
           </div>
         ) : (
-          <div className="w-full p-6 bg-gradient-to-br from-emerald-900/40 via-slate-900 to-indigo-950/40 border-b border-slate-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl shrink-0">
-              🎓
+          <div className="w-full p-6 bg-slate-50 border-b border-slate-200 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-university-50 border border-university-200/60 text-university-800 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-university-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H9" />
+              </svg>
             </div>
             <div>
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">ข่าวสารกิจกรรมมหาวิทยาลัย</span>
-              <span className="text-[11px] text-slate-400 block">ประกาศกิจกรรมอย่างเป็นทางการ</span>
+              <span className="text-xs font-semibold text-university-800 uppercase tracking-wider block">ข่าวสารกิจกรรมมหาวิทยาลัย</span>
+              <span className="text-xs text-slate-600 block">ประกาศอย่างเป็นทางการ</span>
             </div>
           </div>
         )}
@@ -231,53 +229,60 @@ export default function EventDetailPage() {
           {/* Status & Target Group */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <StatusBadge variant={status as any} />
-            <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700/80">
+            <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
               กลุ่มเป้าหมาย: {event.targetGroup || 'นักศึกษาทุกชั้นปี'}
             </span>
           </div>
 
           {/* Event Title */}
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-100 tracking-tight leading-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-snug">
             {event.title}
           </h1>
 
-          {/* Compact Metadata Rows */}
-          <div className="space-y-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs">
+          {/* Compact Metadata Box */}
+          <div className="space-y-3 p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700">
             <div className="flex items-start gap-3">
-              <span className="text-base shrink-0">📅</span>
+              <svg className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">วันที่</span>
-                <span className="font-semibold text-slate-200 block mt-0.5">{formatEventDate(event.date)}</span>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">วันที่</span>
+                <span className="font-semibold text-slate-900 block mt-0.5">{formatEventDate(event.date)}</span>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <span className="text-base shrink-0">🕘</span>
+              <svg className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">เวลา</span>
-                <span className="font-semibold text-slate-200 block mt-0.5">{formatTimeRange(event.startTime, event.endTime)}</span>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">เวลา</span>
+                <span className="font-semibold text-slate-900 block mt-0.5">{formatTimeRange(event.startTime, event.endTime)}</span>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <span className="text-base shrink-0">📍</span>
+              <svg className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">สถานที่</span>
-                <span className="font-semibold text-slate-200 block mt-0.5">{event.location}</span>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">สถานที่</span>
+                <span className="font-semibold text-slate-900 block mt-0.5">{event.location}</span>
               </div>
             </div>
           </div>
 
           {/* Student Attendance QR Instruction Banner */}
-          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-slate-300 flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 text-base">
-              📱
-            </div>
+          <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-3">
+            <svg className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
             <div className="space-y-1">
-              <span className="font-bold text-slate-100 block text-xs">
+              <span className="font-bold text-blue-950 block text-xs">
                 คำแนะนำการลงชื่อเช็กอิน / เช็กเอาต์
               </span>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
+              <p className="text-blue-800 leading-relaxed text-xs">
                 สแกน QR Code บนหน้าจอแสดงผล ณ สถานที่จัดงานตามช่วงเวลาที่เปิดระบบเพื่อบันทึกการเข้าร่วมกิจกรรม
               </p>
             </div>
@@ -285,31 +290,31 @@ export default function EventDetailPage() {
 
           {/* Description */}
           <div className="space-y-2 pt-1">
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
               รายละเอียดกิจกรรม
             </h2>
-            <div className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+            <div className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
               {event.description}
             </div>
           </div>
 
           {/* Activities Photo Gallery */}
           {galleryImages.length > 0 && (
-            <div className="space-y-3 pt-5 border-t border-slate-800">
+            <div className="space-y-3 pt-5 border-t border-slate-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     ภาพกิจกรรม
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] font-semibold border border-slate-200">
                     {galleryImages.length} รูปภาพ
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500">แตะที่รูปภาพเพื่อขยายใหญ่</span>
+                <span className="text-[11px] text-slate-500">คลิกที่รูปเพื่อขยาย</span>
               </div>
 
-              {/* Responsive Swipeable Photo Gallery */}
-              <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-none snap-x snap-mandatory">
+              {/* Grid: 2 columns on mobile, 3 columns on desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {galleryImages.map((imgItem, idx) => {
                   const imgUrl = getEventImageUrl(imgItem.imageUrl);
                   if (!imgUrl) return null;
@@ -317,19 +322,14 @@ export default function EventDetailPage() {
                     <div
                       key={imgItem.id || idx}
                       onClick={() => setActiveLightboxIndex(idx)}
-                      className="snap-start shrink-0 w-44 sm:w-auto h-36 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 hover:border-emerald-500/60 transition-all duration-300 cursor-pointer relative group shadow-md"
+                      className="aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 border border-slate-200 hover:border-slate-400 transition-colors cursor-pointer relative group"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imgUrl}
                         alt={`รูปภาพกิจกรรมที่ ${idx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />
-                      <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-600/90 text-white text-[10px] font-bold shadow-md">
-                          🔍 ขยาย
-                        </span>
-                      </div>
                     </div>
                   );
                 })}

@@ -1,0 +1,84 @@
+===============================================================================
+PHASE 17.1 — STUDENT/PUBLIC UI & UX REDESIGN REPORT
+===============================================================================
+
+Date: 2026-09-26
+Project: University Event Management and Attendance Verification System
+Phase Scope: Student / Public UI & UX Redesign ONLY
+
+-------------------------------------------------------------------------------
+1. OVERVIEW & DESIGN PHILOSOPHY
+-------------------------------------------------------------------------------
+Phase 17.1 systematically replaced all AI SaaS-style visual elements (purple/blue
+gradients, neon glows, glassmorphism, floating ambient background blobs, emoji
+icon fluff, giant pill controls, heavy drop shadows) with a simple, functional,
+trustworthy, university-oriented interface.
+
+Core Color System:
+- Page Background: #F7F7F5 (Light neutral canvas)
+- Card / Surface: #FFFFFF (White)
+- Primary Text: #1F2933 (Slate-900 / Slate-800)
+- Secondary Text: #667085 (Slate-600 / Slate-500)
+- Borders: #E5E7EB (Slate-200)
+- University Maroon Accent: #8B1E2D (bg-university-700, hover:bg-university-800)
+
+Restrained Geometry:
+- Cards: ~12px rounded-xl
+- Buttons: ~8px rounded-lg
+- Badges & Input fields: ~6px rounded-md / rounded-lg
+
+-------------------------------------------------------------------------------
+2. COMPONENT & PAGE REDESIGNS
+-------------------------------------------------------------------------------
+1. tailwind.config.js & globals.css:
+   - Added `university` color palette (`university-700`: #8B1E2D, `university-800`: #741825).
+   - Configured custom border radius values.
+   - Updated CSS variables `--background: #F7F7F5` and `--foreground: #1F2933`.
+
+2. Root Layout & Navbar (`apps/web/src/app/layout.tsx` & `Navbar.tsx`):
+   - Set clean background color `#F7F7F5`.
+   - Updated Navbar to white surface (`bg-white border-b border-slate-200`) with university maroon brand badge, clean navigation links, and subtle status badge.
+
+3. UI Base Components (`Button.tsx`, `StatusBadge.tsx`, `EmptyState.tsx`, `ErrorState.tsx`, `EventCard.tsx`, `SkeletonCard.tsx`):
+   - Restrained button styles with `rounded-lg` (~8px) and university brand color `#8B1E2D`.
+   - Restrained light status badges (`rounded-md` ~6px) with clean status colors.
+   - Clean white card surfaces (`bg-white border border-slate-200 rounded-xl shadow-sm`).
+   - Replaced decorative emoji fluff with clean minimal outline SVGs and proper Thai typography.
+
+4. Public Landing Page (`apps/web/src/app/page.tsx`):
+   - Clean white container card with clear university introduction.
+   - Removed glowing ambient background blur blobs, gradient text headings, and decorative emojis.
+
+5. Public Events List (`apps/web/src/app/events/page.tsx`):
+   - Clean light surface layout.
+   - Restrained header with university badge (`bg-university-50 text-university-800 border-university-200`).
+   - Clean card grid displaying redesigned `EventCard` components.
+
+6. Event Detail Page (`apps/web/src/app/events/[id]/page.tsx`):
+   - Clean mobile-first container with white card surface.
+   - Restrained metadata box (`bg-slate-50 border-slate-200 rounded-lg`).
+   - Gallery grid (2 columns on mobile `grid-cols-2`, 3 columns on desktop `sm:grid-cols-3`).
+   - Simple dark lightbox modal with clean controls.
+
+7. Student LIFF Onboarding (`apps/web/src/app/attendance/session/page.tsx`):
+   - Clean white surface card.
+   - Student ID input with clean borders and university maroon action button.
+
+8. Attendance Form & Session (`apps/web/src/app/attendance/session/[token]/page.tsx` & `StudentAttendanceForm.tsx`):
+   - Clean vertical flow on white card surface.
+   - Read-only student profile box (`bg-slate-50 border-slate-200 rounded-lg`).
+   - Photo proof upload dropzone with clean dashed border and light preview box.
+   - Feedback textarea and primary submit button using university maroon `#8B1E2D`.
+   - Clean success, already completed, and checked-in waiting for checkout state cards.
+
+9. Display & QR Components (`QrCodeDisplay.tsx`, `Countdown.tsx`, `QrPlaceholder.tsx`):
+   - Clean high-contrast white card containers with clear status badges and clean typography.
+
+-------------------------------------------------------------------------------
+3. VERIFICATION & SAFETY
+-------------------------------------------------------------------------------
+- NestJS Backend Regression Tests: 18/18 PASSED.
+- Next.js Web Application Build: PASSED cleanly without warnings.
+- Business logic, database schema, authentication, LINE/LIFF logic, attendance validation, QR token generation, R2 storage, and existing functionality were strictly preserved.
+
+===============================================================================

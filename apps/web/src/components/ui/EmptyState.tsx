@@ -12,10 +12,10 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, actionText, onAction, icon }: EmptyStateProps) {
   return (
-    <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-8 sm:p-12 text-center max-w-md mx-auto my-8 space-y-4 shadow-xl">
-      <div className="w-14 h-14 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
+    <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-12 text-center max-w-md mx-auto my-8 space-y-4 shadow-sm">
+      <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center mx-auto border border-slate-200">
         {icon || (
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -26,13 +26,13 @@ export function EmptyState({ title, description, actionText, onAction, icon }: E
         )}
       </div>
       <div className="space-y-1">
-        <h3 className="text-lg font-bold text-slate-100">{title}</h3>
-        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">{description}</p>
+        <h3 className="text-base font-bold text-slate-900">{title}</h3>
+        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">{description}</p>
       </div>
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors shadow-lg shadow-indigo-950/40"
+          className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-medium transition-colors shadow-sm"
         >
           {actionText}
         </button>
@@ -40,3 +40,4 @@ export function EmptyState({ title, description, actionText, onAction, icon }: E
     </div>
   );
 }
+

@@ -118,61 +118,61 @@ function LiffSessionContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4 font-sans">
-        <div className="w-16 h-16 rounded-full bg-indigo-500/20 border-2 border-indigo-500/40 flex items-center justify-center animate-spin">
-          <div className="w-8 h-8 rounded-full border-4 border-indigo-400 border-t-transparent" />
-        </div>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4 font-sans">
+        <div className="w-12 h-12 rounded-full border-4 border-university-700 border-t-transparent animate-spin" />
         <div className="text-center space-y-1">
-          <h2 className="text-lg font-bold text-slate-200">กำลังเชื่อมต่อกับ LINE...</h2>
-          <p className="text-sm text-slate-400">กรุณารอสักครู่ขณะระบบกำลังตรวจสอบการยืนยันตัวตน</p>
+          <h2 className="text-base font-bold text-slate-800">กำลังเชื่อมต่อกับ LINE...</h2>
+          <p className="text-xs text-slate-500">กรุณารอสักครู่ขณะระบบกำลังตรวจสอบการยืนยันตัวตน</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 py-12 select-none font-sans">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-2xl">
+    <div className="min-h-[80vh] flex items-center justify-center p-4 sm:p-6 py-8 select-none font-sans">
+      <div className="max-w-md w-full bg-white border border-slate-200 rounded-xl p-6 sm:p-8 text-center space-y-6 shadow-sm">
         {/* Header Icon */}
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl font-bold">
-          📱
+        <div className="w-14 h-14 mx-auto rounded-xl bg-university-50 border border-university-200/60 flex items-center justify-center text-university-800 shrink-0">
+          <svg className="w-7 h-7 text-university-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
         </div>
 
-        <div className="space-y-2">
-          <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
             เชื่อมต่อ LINE / LIFF แล้ว
-          </span>
-          <h1 className="text-2xl font-black text-slate-100">
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
             พอร์ตัลลงชื่อเข้าร่วมกิจกรรม
           </h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-600 text-xs sm:text-sm">
             {lineDisplayName ? `ยินดีต้อนรับ คุณ ${lineDisplayName}!` : 'ยืนยันตัวตนผ่าน LINE เรียบร้อยแล้ว'}
           </p>
         </div>
 
         {/* Account Linking Status */}
         {liffInfo?.idToken && (
-          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3 text-xs">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-slate-400">การยืนยันตัวตน LINE:</span>
-              <span className="text-emerald-400 font-bold">ตรวจสอบแล้ว</span>
+          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-left space-y-3 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="text-slate-600">การยืนยันตัวตน LINE:</span>
+              <span className="text-emerald-700 font-bold">ตรวจสอบแล้ว</span>
             </div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-slate-400">ข้อมูลนักศึกษามหาวิทยาลัย:</span>
-              <span className={lineLinked ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="text-slate-600">ข้อมูลนักศึกษามหาวิทยาลัย:</span>
+              <span className={lineLinked ? 'text-emerald-700 font-bold' : 'text-amber-600 font-bold'}>
                 {lineLinked ? 'เชื่อมต่อเรียบร้อยแล้ว' : 'ยังไม่ได้เชื่อมต่อ'}
               </span>
             </div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-slate-400">เพื่อนบัญชีทางการ (LINE OA):</span>
-              <span className={isLineFriend ? 'text-emerald-400 font-bold' : 'text-indigo-400 font-bold'}>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="text-slate-600">เพื่อนบัญชีทางการ (LINE OA):</span>
+              <span className={isLineFriend ? 'text-emerald-700 font-bold' : 'text-slate-700 font-bold'}>
                 {isLineFriend === null ? 'กำลังตรวจสอบ...' : isLineFriend ? 'เพิ่มเพื่อนแล้ว' : 'ยังไม่ได้เพิ่มเพื่อน'}
               </span>
             </div>
 
             {isLineFriend === false && (
-              <div className="pt-2 space-y-2 border-t border-slate-800/80">
-                <p className="text-indigo-300 text-xs leading-relaxed">
+              <div className="pt-2 space-y-2 border-t border-slate-200">
+                <p className="text-slate-700 text-xs leading-relaxed">
                   เพิ่มเพื่อนบัญชี LINE มหาวิทยาลัย เพื่อรับข่าวสารกิจกรรม การแจ้งเตือนเช็กอิน และเช็กเอาต์
                 </p>
                 <div className="flex gap-2">
@@ -180,17 +180,17 @@ function LiffSessionContent() {
                     type="button"
                     onClick={handleAddFriend}
                     disabled={requestingFriendship}
-                    className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 px-3 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
-                    {requestingFriendship ? 'กำลังเชื่อมต่อ...' : '➕ เพิ่มเพื่อน LINE Official'}
+                    {requestingFriendship ? 'กำลังเชื่อมต่อ...' : 'เพิ่มเพื่อน LINE Official'}
                   </button>
                   <button
                     type="button"
                     onClick={checkFriendship}
                     disabled={checkingFriendship}
-                    className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all disabled:opacity-50"
+                    className="py-2 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium transition-colors disabled:opacity-50"
                   >
-                    {checkingFriendship ? '...' : '🔄 ตรวจสอบอีกครั้ง'}
+                    {checkingFriendship ? '...' : 'ตรวจสอบอีกครั้ง'}
                   </button>
                 </div>
               </div>
@@ -198,7 +198,7 @@ function LiffSessionContent() {
 
             {!lineLinked && (
               <div className="pt-2 space-y-2">
-                <p className="text-amber-300 text-xs">
+                <p className="text-amber-800 text-xs font-medium">
                   เชื่อมต่อบัญชี LINE ของคุณกับรหัสนักศึกษามหาวิทยาลัย:
                 </p>
                 <div className="flex gap-2">
@@ -207,13 +207,13 @@ function LiffSessionContent() {
                     value={linkInputStudentId}
                     onChange={(e) => setLinkInputStudentId(e.target.value)}
                     placeholder="กรอกรหัสนักศึกษา (เช่น STD-66001)"
-                    className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500"
+                    className="flex-1 bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:border-university-700 focus:ring-1 focus:ring-university-700"
                   />
                   <button
                     type="button"
                     onClick={handleLinkAccount}
                     disabled={linkingLine || !linkInputStudentId.trim()}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all disabled:opacity-50 shrink-0"
+                    className="px-4 py-2.5 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-semibold transition-colors disabled:opacity-50 shrink-0"
                   >
                     {linkingLine ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ'}
                   </button>
@@ -222,17 +222,17 @@ function LiffSessionContent() {
             )}
 
             {lineNotice && (
-              <p className="text-xs text-indigo-300 pt-1 font-medium">{lineNotice}</p>
+              <p className="text-xs text-university-800 pt-1 font-medium">{lineNotice}</p>
             )}
           </div>
         )}
 
         {/* QR Scan / Attendance Guidance Notice */}
-        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-200 text-left space-y-2">
-          <p className="font-bold flex items-center gap-1.5 text-indigo-300">
-            <span>📌</span> ขั้นตอนการลงชื่อเข้าร่วมกิจกรรม:
+        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 text-left space-y-2">
+          <p className="font-bold text-slate-900 flex items-center gap-1.5">
+            ขั้นตอนการลงชื่อเข้าร่วมกิจกรรม:
           </p>
-          <ol className="list-decimal list-inside space-y-1 text-slate-300 leading-relaxed">
+          <ol className="list-decimal list-inside space-y-1 text-slate-600 leading-relaxed">
             <li>สแกน <strong>QR Code สำหรับลงชื่อเข้าร่วมกิจกรรม</strong> ที่แสดงบนหน้าจอสถานที่จัดงาน</li>
             <li>ระบบจะนำท่านไปยังแบบฟอร์มลงชื่อสำหรับรอบกิจกรรมนั้นๆ</li>
             <li>แนบรูปภาพหลักฐานการเข้าร่วมและกดส่งข้อมูล</li>
@@ -243,7 +243,7 @@ function LiffSessionContent() {
         <div className="pt-2 space-y-2">
           <Link
             href="/events"
-            className="inline-block w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
+            className="inline-block w-full py-3 px-5 rounded-lg bg-university-700 hover:bg-university-800 text-white font-semibold text-sm transition-colors shadow-sm"
           >
             เลือกดูรายการกิจกรรม
           </Link>
@@ -257,12 +257,10 @@ export default function LiffSessionEntryPoint() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4 font-sans">
-          <div className="w-16 h-16 rounded-full bg-indigo-500/20 border-2 border-indigo-500/40 flex items-center justify-center animate-spin">
-            <div className="w-8 h-8 rounded-full border-4 border-indigo-400 border-t-transparent" />
-          </div>
+        <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 animate-pulse select-none space-y-4 font-sans">
+          <div className="w-12 h-12 rounded-full border-4 border-university-700 border-t-transparent animate-spin" />
           <div className="text-center space-y-1">
-            <h2 className="text-lg font-bold text-slate-200">กำลังโหลดระบบ...</h2>
+            <h2 className="text-base font-bold text-slate-800">กำลังโหลดระบบ...</h2>
           </div>
         </div>
       }

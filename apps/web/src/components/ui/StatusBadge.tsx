@@ -21,38 +21,38 @@ export function StatusBadge({ variant, customText, className = '' }: StatusBadge
   const configs: Record<StatusBadgeVariant, { label: string; style: string; dot: string }> = {
     ONGOING: {
       label: 'กำลังดำเนินกิจกรรม',
-      style: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      dot: 'bg-emerald-400 animate-pulse',
+      style: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      dot: 'bg-emerald-600',
     },
     UPCOMING: {
       label: 'กำลังจะมาถึง',
-      style: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-      dot: 'bg-indigo-400',
+      style: 'bg-slate-100 text-slate-700 border-slate-200',
+      dot: 'bg-slate-500',
     },
     ENDED: {
       label: 'สิ้นสุดแล้ว',
-      style: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-      dot: 'bg-slate-500',
+      style: 'bg-slate-100 text-slate-500 border-slate-200',
+      dot: 'bg-slate-400',
     },
     CHECK_IN: {
       label: 'เปิดลงชื่อเช็กอิน',
-      style: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      dot: 'bg-emerald-400 animate-pulse',
+      style: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      dot: 'bg-emerald-600',
     },
     CHECK_OUT: {
       label: 'เปิดลงชื่อเช็กเอาต์',
-      style: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-      dot: 'bg-indigo-400 animate-pulse',
+      style: 'bg-amber-50 text-amber-800 border-amber-200',
+      dot: 'bg-amber-600',
     },
     COMPLETED: {
       label: 'สมบูรณ์',
-      style: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      dot: 'bg-emerald-400',
+      style: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      dot: 'bg-emerald-600',
     },
     INCOMPLETE: {
       label: 'ไม่สมบูรณ์',
-      style: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      dot: 'bg-amber-400',
+      style: 'bg-amber-50 text-amber-800 border-amber-200',
+      dot: 'bg-amber-600',
     },
   };
 
@@ -60,10 +60,11 @@ export function StatusBadge({ variant, customText, className = '' }: StatusBadge
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${config.style} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium border ${config.style} ${className}`}
     >
-      <span className={`w-2 h-2 rounded-full ${config.dot}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
       {customText || config.label}
     </span>
   );
 }
+

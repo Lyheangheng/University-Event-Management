@@ -302,43 +302,45 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   // Render SUCCESS State from recent submission
   if (submissionResult) {
     return (
-      <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none font-sans">
-        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-400 text-3xl font-black shadow-lg">
-          ✓
+      <div className="max-w-md sm:max-w-lg w-full bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-6 shadow-sm text-center font-sans select-none">
+        <div className="w-16 h-16 mx-auto rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
         </div>
 
-        <div className="space-y-2">
-          <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-widest">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold uppercase">
             {submissionResult.sessionType === 'CHECK_IN' ? 'ลงชื่อเช็กอินเรียบร้อย' : 'ลงชื่อเช็กเอาต์เรียบร้อย'}
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-100">
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
             {submissionResult.sessionType === 'CHECK_IN' ? 'ลงชื่อเข้าร่วมกิจกรรมเรียบร้อยแล้ว' : 'ลงชื่อออกจากกิจกรรมเรียบร้อยแล้ว'}
           </h2>
-          <p className="text-slate-400 text-sm">
-            กิจกรรม: <strong className="text-slate-200">{submissionResult.eventTitle}</strong>
+          <p className="text-slate-600 text-xs sm:text-sm">
+            กิจกรรม: <strong className="text-slate-900">{submissionResult.eventTitle}</strong>
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3 text-xs sm:text-sm">
-          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-left space-y-2.5 text-xs sm:text-sm">
+          <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
             <span>ชื่อ-นามสกุล:</span>
-            <span className="text-slate-200 font-bold">{submissionResult.studentName}</span>
+            <span className="text-slate-900 font-bold">{submissionResult.studentName}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+          <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
             <span>รหัสนักศึกษา:</span>
-            <span className="text-slate-200 font-mono font-bold">{submissionResult.studentId}</span>
+            <span className="text-slate-900 font-mono font-bold">{submissionResult.studentId}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+          <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
             <span>เวลาที่บันทึก:</span>
-            <span className="text-slate-200 font-mono">
+            <span className="text-slate-900 font-mono">
               {new Date(submissionResult.recordedAt).toLocaleString('th-TH')}
             </span>
           </div>
-          <div className="flex justify-between text-slate-400">
+          <div className="flex justify-between text-slate-600">
             <span>สถานะการเข้าร่วม:</span>
             <span
               className={`font-bold ${
-                submissionResult.status === 'COMPLETED' ? 'text-emerald-400' : 'text-amber-400'
+                submissionResult.status === 'COMPLETED' ? 'text-emerald-700' : 'text-amber-700'
               }`}
             >
               {submissionResult.status === 'COMPLETED' ? 'สมบูรณ์' : 'เช็กอินแล้ว'}
@@ -349,7 +351,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
         <div className="pt-2">
           <Link
             href="/events"
-            className="inline-block w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
+            className="inline-block w-full py-2.5 px-5 rounded-lg bg-university-700 hover:bg-university-800 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm"
           >
             กลับไปยังรายการกิจกรรมทั้งหมด
           </Link>
@@ -361,58 +363,60 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   // Already COMPLETED Attendance State
   if (hasCompletedAttendance) {
     return (
-      <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none font-sans">
-        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-400 text-3xl font-black shadow-lg">
-          ✓
+      <div className="max-w-md sm:max-w-lg w-full bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-6 shadow-sm text-center font-sans select-none">
+        <div className="w-16 h-16 mx-auto rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
         </div>
 
-        <div className="space-y-2">
-          <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-widest">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold uppercase">
             เข้าร่วมกิจกรรมสมบูรณ์แล้ว
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-100">
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
             คุณได้บันทึกการเข้าร่วมกิจกรรมนี้ครบถ้วนแล้ว
           </h2>
-          <p className="text-slate-400 text-sm">
-            กิจกรรม: <strong className="text-slate-200">{event.title}</strong>
+          <p className="text-slate-600 text-xs sm:text-sm">
+            กิจกรรม: <strong className="text-slate-900">{event.title}</strong>
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3 text-xs sm:text-sm">
-          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-left space-y-2.5 text-xs sm:text-sm">
+          <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
             <span>ชื่อ-นามสกุล:</span>
-            <span className="text-slate-200 font-bold">{profile?.fullName || ''}</span>
+            <span className="text-slate-900 font-bold">{profile?.fullName || ''}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+          <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
             <span>รหัสนักศึกษา:</span>
-            <span className="text-slate-200 font-mono font-bold">{profile?.studentId || ''}</span>
+            <span className="text-slate-900 font-mono font-bold">{profile?.studentId || ''}</span>
           </div>
           {existingAtt?.checkInTime && (
-            <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+            <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
               <span>เวลาเช็กอิน:</span>
-              <span className="text-slate-200 font-mono">
+              <span className="text-slate-900 font-mono">
                 {new Date(existingAtt.checkInTime).toLocaleString('th-TH')}
               </span>
             </div>
           )}
           {existingAtt?.checkOutTime && (
-            <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+            <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
               <span>เวลาเช็กเอาต์:</span>
-              <span className="text-slate-200 font-mono">
+              <span className="text-slate-900 font-mono">
                 {new Date(existingAtt.checkOutTime).toLocaleString('th-TH')}
               </span>
             </div>
           )}
-          <div className="flex justify-between text-slate-400">
+          <div className="flex justify-between text-slate-600">
             <span>สถานะการเข้าร่วม:</span>
-            <span className="font-bold text-emerald-400">สมบูรณ์</span>
+            <span className="font-bold text-emerald-700">สมบูรณ์</span>
           </div>
         </div>
 
         <div className="pt-2">
           <Link
             href="/events"
-            className="inline-block w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
+            className="inline-block w-full py-2.5 px-5 rounded-lg bg-university-700 hover:bg-university-800 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm"
           >
             กลับไปยังรายการกิจกรรมทั้งหมด
           </Link>
@@ -424,43 +428,45 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   // Check-In session when ALREADY checked in (Waiting for Checkout)
   if (isCheckIn && hasCheckedIn) {
     return (
-      <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in text-center select-none font-sans">
-        <div className="w-20 h-20 mx-auto rounded-full bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center text-amber-400 text-3xl font-black shadow-lg">
-          ⏳
+      <div className="max-w-md sm:max-w-lg w-full bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-6 shadow-sm text-center font-sans select-none">
+        <div className="w-16 h-16 mx-auto rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
 
-        <div className="space-y-2">
-          <span className="px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-widest">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold uppercase">
             ลงชื่อเช็กอินแล้ว • รอเช็กเอาต์
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-100">
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
             คุณได้ลงชื่อเช็กอินเรียบร้อยแล้ว
           </h2>
-          <p className="text-slate-400 text-sm">
-            กิจกรรม: <strong className="text-slate-200">{event.title}</strong>
+          <p className="text-slate-600 text-xs sm:text-sm">
+            กิจกรรม: <strong className="text-slate-900">{event.title}</strong>
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-left space-y-3 text-xs sm:text-sm">
-          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-left space-y-2.5 text-xs sm:text-sm">
+          <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
             <span>ชื่อ-นามสกุล:</span>
-            <span className="text-slate-200 font-bold">{profile?.fullName || ''}</span>
+            <span className="text-slate-900 font-bold">{profile?.fullName || ''}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-800 pb-2 text-slate-400">
+          <div className="flex justify-between border-b border-slate-200 pb-2 text-slate-600">
             <span>เวลาเช็กอินที่บันทึก:</span>
-            <span className="text-slate-200 font-mono font-bold">
+            <span className="text-slate-900 font-mono font-bold">
               {existingAtt?.checkInTime ? new Date(existingAtt.checkInTime).toLocaleString('th-TH') : ''}
             </span>
           </div>
-          <div className="flex justify-between text-slate-400">
+          <div className="flex justify-between text-slate-600">
             <span>สถานะ:</span>
-            <span className="font-bold text-amber-400">เช็กอินแล้ว (รอเช็กเอาต์)</span>
+            <span className="font-bold text-amber-700">เช็กอินแล้ว (รอเช็กเอาต์)</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 text-left space-y-1.5">
-          <p className="font-bold text-slate-300">📌 ขั้นตอนถัดไปสำหรับการเข้าร่วม:</p>
-          <p>
+        <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-900 text-left space-y-1">
+          <p className="font-bold">ขั้นตอนถัดไปสำหรับการเข้าร่วม:</p>
+          <p className="text-blue-800 leading-relaxed">
             กรุณารอจนกว่าจะถึงช่วงเวลาเช็กเอาต์ (ช่วงท้ายกิจกรรม) เพื่อสแกน QR Code เช็กเอาต์บนหน้าจอแสดงผลสถานที่จัดงาน เพื่อยืนยันการเข้าร่วมกิจกรรมสมบูรณ์
           </p>
         </div>
@@ -468,7 +474,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
         <div className="pt-2">
           <Link
             href="/events"
-            className="inline-block w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
+            className="inline-block w-full py-2.5 px-5 rounded-lg bg-university-700 hover:bg-university-800 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm"
           >
             กลับไปยังรายการกิจกรรมทั้งหมด
           </Link>
@@ -493,52 +499,54 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   });
 
   return (
-    <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-fade-in font-sans select-none">
+    <div className="max-w-md sm:max-w-xl w-full bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-6 shadow-sm font-sans select-none">
       {/* Header Banner */}
-      <div className="text-center space-y-3">
+      <div className="text-center space-y-2">
         <div
-          className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-widest ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold uppercase ${
             isCheckIn
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : 'bg-amber-50 text-amber-800 border border-amber-200'
           }`}
         >
           <span
             className={`w-2 h-2 rounded-full ${
-              isCheckIn ? 'bg-emerald-400' : 'bg-amber-400'
-            } animate-ping`}
+              isCheckIn ? 'bg-emerald-600' : 'bg-amber-600'
+            }`}
           />
           {isCheckIn ? 'แบบฟอร์มลงชื่อเข้าร่วมกิจกรรม (เช็กอิน)' : 'แบบฟอร์มลงชื่อออกจากกิจกรรม (เช็กเอาต์)'}
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-100 leading-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-snug">
           {event.title}
         </h1>
 
-        <p className="text-slate-400 text-xs sm:text-sm">
+        <p className="text-slate-600 text-xs sm:text-sm">
           {event.location} • {formatEventDate(event.date)} ({formatTimeRange(event.startTime, event.endTime)})
         </p>
 
-        <div className="inline-block px-3 py-1 rounded-full bg-slate-950 border border-slate-800 text-xs font-mono text-slate-400">
+        <div className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700">
           ช่วงเวลาเปิดระบบ: {formattedStartTime} – {formattedEndTime} น.
         </div>
       </div>
 
       {/* Form Error Banner */}
       {formError && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs sm:text-sm flex items-start gap-3">
-          <span className="font-black text-base">⚠️</span>
+        <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm flex items-start gap-2.5">
+          <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           <span>{formError}</span>
         </div>
       )}
 
       {/* Missing Check-In Warning Banner for Checkout */}
       {missingCheckInForCheckout && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs sm:text-sm space-y-1">
-          <p className="font-bold flex items-center gap-2">
-            <span>⚠️</span> กรุณาลงชื่อเช็กอินก่อนลงชื่อเช็กเอาต์
+        <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm space-y-1">
+          <p className="font-bold flex items-center gap-2 text-amber-950">
+            กรุณาลงชื่อเช็กอินก่อนลงชื่อเช็กเอาต์
           </p>
-          <p className="text-slate-300">
+          <p className="text-amber-800">
             คุณต้องลงชื่อเช็กอินในช่วงเวลาเช็กอินก่อน จึงจะสามารถลงชื่อเช็กเอาต์ได้
           </p>
         </div>
@@ -546,12 +554,14 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
 
       {/* Unlinked LINE Account Warning Banner */}
       {liffInfo?.idToken && !lineLinked && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 space-y-3">
           <div className="flex items-start gap-2.5">
-            <span className="text-amber-400 text-lg font-bold">⚠️</span>
+            <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             <div className="space-y-1 text-xs">
-              <span className="font-bold text-amber-300 block">ยังไม่ได้เชื่อมต่อบัญชี LINE</span>
-              <p className="text-slate-300 leading-relaxed">
+              <span className="font-bold text-amber-900 block">ยังไม่ได้เชื่อมต่อบัญชี LINE</span>
+              <p className="text-amber-800 leading-relaxed">
                 บัญชี LINE ของคุณ ({lineDisplayName || 'ผู้ใช้งาน LINE'}) ยังไม่ได้เชื่อมต่อกับข้อมูลนักศึกษา กรุณากรอกรหัสนักศึกษาด้านล่างเพื่อเชื่อมต่อบัญชีก่อนส่งข้อมูลการเข้าร่วม
               </p>
             </div>
@@ -563,13 +573,13 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
               value={linkInputStudentId}
               onChange={(e) => setLinkInputStudentId(e.target.value)}
               placeholder="กรอกรหัสนักศึกษา (เช่น STD-66001)"
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500"
+              className="flex-1 bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 outline-none focus:border-university-700 focus:ring-1 focus:ring-university-700"
             />
             <button
               type="button"
               onClick={() => handleLinkLineAccount()}
               disabled={linkingLine || !linkInputStudentId.trim()}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all disabled:opacity-50 shrink-0"
+              className="px-3.5 py-2 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-semibold transition-colors disabled:opacity-50 shrink-0"
             >
               {linkingLine ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อบัญชี'}
             </button>
@@ -579,12 +589,14 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
 
       {/* LINE Official Account Friendship Banner */}
       {liffInfo?.idToken && isLineFriend === false && (
-        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 space-y-3">
+        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
           <div className="flex items-start gap-2.5">
-            <span className="text-indigo-400 text-lg font-bold">💬</span>
+            <svg className="w-5 h-5 text-university-700 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
             <div className="space-y-1 text-xs">
-              <span className="font-bold text-indigo-300 block">เพิ่มเพื่อนบัญชีทางการ &quot;University Events&quot;</span>
-              <p className="text-slate-300 leading-relaxed">
+              <span className="font-bold text-slate-900 block">เพิ่มเพื่อนบัญชีทางการ &quot;University Events&quot;</span>
+              <p className="text-slate-600 leading-relaxed">
                 เพิ่มเพื่อนบัญชี LINE มหาวิทยาลัย เพื่อรับข่าวสารกิจกรรม การแจ้งเตือนเช็กอิน และเช็กเอาต์
               </p>
             </div>
@@ -595,7 +607,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
               type="button"
               onClick={handleRequestFriendship}
               disabled={requestingFriendship}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
+              className="w-full sm:w-auto px-4 py-2 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
             >
               {requestingFriendship ? (
                 <>
@@ -603,36 +615,36 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
                   <span>กำลังเชื่อมต่อกับ LINE...</span>
                 </>
               ) : (
-                <span>➕ เพิ่มเพื่อน LINE Official</span>
+                <span>เพิ่มเพื่อน LINE Official</span>
               )}
             </button>
             <button
               type="button"
               onClick={checkFriendshipStatus}
               disabled={checkingFriendship}
-              className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all disabled:opacity-50 shrink-0"
+              className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors disabled:opacity-50 shrink-0"
             >
-              {checkingFriendship ? 'กำลังตรวจสอบ...' : '🔄 ตรวจสอบสถานะอีกครั้ง'}
+              {checkingFriendship ? 'กำลังตรวจสอบ...' : 'ตรวจสอบสถานะอีกครั้ง'}
             </button>
           </div>
 
           {friendshipNotice && (
-            <p className="text-xs text-indigo-300 font-medium pt-1">{friendshipNotice}</p>
+            <p className="text-xs text-university-800 font-medium pt-1">{friendshipNotice}</p>
           )}
         </div>
       )}
 
       {/* Dev Mode Student Switcher (Development Only) */}
       {process.env.NODE_ENV === 'development' && availableStudents.length > 1 && (
-        <div className="p-3.5 rounded-2xl bg-slate-950 border border-indigo-900/40 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-mono text-indigo-400 uppercase tracking-wider">
-            <span>⚙️ DEV TEST SWITCHER</span>
+        <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+            <span>DEV TEST SWITCHER</span>
             <span>Local Test Mode</span>
           </div>
           <select
             value={selectedDevStudentId}
             onChange={(e) => setSelectedDevStudentId(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-white border border-slate-300 text-slate-900 text-xs rounded-lg p-2.5 outline-none focus:border-university-700 transition-colors"
           >
             {availableStudents.map((st) => (
               <option key={st.id} value={st.id}>
@@ -647,53 +659,53 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
         {/* SECTION 1: Read-Only Authenticated Student Profile */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">
               ข้อมูลนักศึกษา (ยืนยันตัวตนแล้ว)
             </h2>
-            <span className="text-[10px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-semibold">
-              ข้อมูลสำหรับยืนยันตัวตน
+            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">
+              ยืนยันตัวตนแล้ว
             </span>
           </div>
 
           {profileLoading ? (
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center justify-center space-y-3">
-              <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-              <p className="text-sm font-medium text-slate-400">
+            <div className="p-6 rounded-lg bg-slate-50 border border-slate-200 flex flex-col items-center justify-center space-y-3">
+              <div className="w-6 h-6 border-2 border-university-700 border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs font-medium text-slate-600">
                 กำลังตรวจสอบข้อมูลนักศึกษาผ่าน LINE...
               </p>
             </div>
           ) : profile ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs">
               <div>
                 <span className="text-slate-500 block">ชื่อ-นามสกุล</span>
-                <span className="font-bold text-slate-200 text-sm">{profile.fullName}</span>
+                <span className="font-bold text-slate-900 text-xs sm:text-sm">{profile.fullName}</span>
               </div>
               <div>
                 <span className="text-slate-500 block">รหัสนักศึกษา</span>
-                <span className="font-mono font-bold text-slate-200 text-sm">{profile.studentId}</span>
+                <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm">{profile.studentId}</span>
               </div>
               <div>
                 <span className="text-slate-500 block">คณะ / สาขาวิชา</span>
-                <span className="text-slate-300 font-medium">
+                <span className="text-slate-700 font-medium">
                   {profile.faculty} ({profile.major})
                 </span>
               </div>
               <div>
                 <span className="text-slate-500 block">ชั้นปี</span>
-                <span className="text-slate-300 font-medium">ชั้นปีที่ {profile.year}</span>
+                <span className="text-slate-700 font-medium">ชั้นปีที่ {profile.year}</span>
               </div>
 
               {/* LINE Account Link Banner */}
               {liffInfo?.idToken && (
-                <div className="col-span-1 sm:col-span-2 pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="col-span-1 sm:col-span-2 pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${lineLinked ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
-                    <span className="text-xs text-slate-300">
+                    <span className={`w-2 h-2 rounded-full ${lineLinked ? 'bg-emerald-600' : 'bg-amber-600'}`} />
+                    <span className="text-xs text-slate-700">
                       สถานะบัญชี LINE:{' '}
                       {lineLinked ? (
-                        <strong className="text-emerald-400">เชื่อมต่อแล้ว ({lineDisplayName || 'ผู้ใช้งาน LINE'})</strong>
+                        <strong className="text-emerald-700">เชื่อมต่อแล้ว ({lineDisplayName || 'ผู้ใช้งาน LINE'})</strong>
                       ) : (
-                        <strong className="text-amber-400">ยังไม่ได้เชื่อมต่อ</strong>
+                        <strong className="text-amber-700">ยังไม่ได้เชื่อมต่อ</strong>
                       )}
                     </span>
                   </div>
@@ -703,7 +715,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
                       type="button"
                       onClick={() => handleLinkLineAccount()}
                       disabled={linkingLine}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-lg bg-university-700 hover:bg-university-800 text-white text-xs font-semibold transition-colors disabled:opacity-50"
                     >
                       {linkingLine ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อบัญชี LINE'}
                     </button>
@@ -714,7 +726,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
           ) : null}
 
           {lineNotice && (
-            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs">
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-university-800 text-xs font-medium">
               {lineNotice}
             </div>
           )}
@@ -723,25 +735,25 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
         {/* SECTION 2: Photo Proof Upload */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              รูปภาพหลักฐานการเข้าร่วมกิจกรรม <span className="text-rose-400">*</span>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+              รูปภาพหลักฐานการเข้าร่วมกิจกรรม <span className="text-red-600">*</span>
             </label>
             <span className="text-[10px] text-slate-500">ขนาดสูงสุด 5MB (JPG, PNG, WEBP)</span>
           </div>
 
           {photoPreviewUrl ? (
-            <div className="relative p-3 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center space-y-3">
-              <div className="relative w-full max-h-56 overflow-hidden rounded-xl border border-slate-800 flex items-center justify-center bg-slate-900">
+            <div className="relative p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col items-center space-y-3">
+              <div className="relative w-full max-h-56 overflow-hidden rounded-md border border-slate-200 flex items-center justify-center bg-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photoPreviewUrl}
                   alt="ตัวอย่างรูปภาพหลักฐาน"
-                  className="max-h-56 object-contain rounded-xl"
+                  className="max-h-56 object-contain rounded-md"
                 />
               </div>
 
               <div className="flex items-center gap-3 w-full">
-                <label className="flex-1 py-2 px-3 text-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer transition-colors">
+                <label className="flex-1 py-2 px-3 text-center rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer transition-colors">
                   เปลี่ยนรูปภาพ
                   <input
                     type="file"
@@ -755,7 +767,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
                 <button
                   type="button"
                   onClick={handleRemovePhoto}
-                  className="py-2 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-colors"
+                  className="py-2 px-4 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition-colors border border-red-200"
                   disabled={missingCheckInForCheckout}
                 >
                   ลบรูปภาพ
@@ -763,15 +775,18 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
               </div>
             </div>
           ) : (
-            <label className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl bg-slate-950/60 hover:bg-slate-950 cursor-pointer transition-all space-y-2 text-center group ${
+            <label className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 hover:border-university-700 rounded-lg bg-slate-50 hover:bg-slate-100/60 cursor-pointer transition-colors space-y-2 text-center group ${
               missingCheckInForCheckout ? 'opacity-50 pointer-events-none' : ''
             }`}>
-              <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xl group-hover:scale-110 transition-transform">
-                📷
+              <div className="w-10 h-10 rounded-lg bg-university-50 border border-university-200/60 flex items-center justify-center text-university-700">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
               </div>
               <div className="space-y-0.5">
-                <p className="text-sm font-bold text-slate-200">ถ่ายภาพหรือเลือกรูปภาพหลักฐาน</p>
-                <p className="text-xs text-slate-500">แตะเพื่อเลือกรูปภาพหรือเปิดกล้องถ่ายภาพ</p>
+                <p className="text-xs font-bold text-slate-800">ถ่ายภาพหรือเลือกรูปภาพหลักฐาน</p>
+                <p className="text-[11px] text-slate-500">แตะเพื่อเลือกรูปภาพหรือเปิดกล้องถ่ายภาพ</p>
               </div>
               <input
                 type="file"
@@ -784,14 +799,14 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
             </label>
           )}
 
-          {photoError && <p className="text-xs text-rose-400 font-medium">{photoError}</p>}
+          {photoError && <p className="text-xs text-red-600 font-medium">{photoError}</p>}
         </div>
 
         {/* SECTION 3: Recommendation / Feedback */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              ข้อเสนอแนะ / ความคิดเห็น <span className="text-slate-500 font-normal">(ไม่บังคับ)</span>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+              ข้อเสนอแนะ / ความคิดเห็น <span className="text-slate-400 font-normal">(ไม่บังคับ)</span>
             </label>
             <span className="text-[10px] text-slate-500 font-mono">{feedback.length}/1000</span>
           </div>
@@ -803,7 +818,7 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
             onChange={(e) => setFeedback(e.target.value)}
             disabled={missingCheckInForCheckout}
             placeholder="แสดงความคิดเห็นหรือข้อเสนอแนะเกี่ยวกับกิจกรรมนี้..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors resize-none disabled:opacity-50"
+            className="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-university-700 focus:ring-1 focus:ring-university-700 transition-colors resize-none disabled:opacity-50"
           />
         </div>
 
@@ -811,17 +826,15 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
         <button
           type="submit"
           disabled={submitting || !photoFile || missingCheckInForCheckout}
-          className={`w-full py-4 px-6 rounded-2xl font-bold text-sm tracking-wide transition-all shadow-xl flex items-center justify-center gap-2 ${
+          className={`w-full py-3 px-5 rounded-lg font-semibold text-xs sm:text-sm tracking-wide transition-colors shadow-sm flex items-center justify-center gap-2 ${
             submitting || !photoFile || missingCheckInForCheckout
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
-              : isCheckIn
-              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-              : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/20'
+              ? 'bg-slate-200 text-slate-500 cursor-not-allowed shadow-none'
+              : 'bg-university-700 hover:bg-university-800 text-white'
           }`}
         >
           {submitting ? (
             <>
-              <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               <span>กำลังส่งข้อมูล...</span>
             </>
           ) : (

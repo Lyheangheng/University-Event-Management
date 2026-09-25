@@ -18,35 +18,35 @@ export function Countdown({ targetDate, currentTime, subtitle }: CountdownProps)
   return (
     <div className="flex flex-col items-center justify-center space-y-3">
       {/* Digits Container */}
-      <div className="flex items-center justify-center gap-2 sm:gap-4 font-mono font-black text-slate-100">
+      <div className="flex items-center justify-center gap-2 sm:gap-4 font-mono font-bold text-slate-900">
         <div className="flex flex-col items-center">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-2 sm:px-6 sm:py-4 shadow-xl min-w-[3.5rem] sm:min-w-[6rem] text-center text-3xl sm:text-6xl md:text-7xl text-indigo-400">
+          <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 sm:px-6 sm:py-4 shadow-sm min-w-[3.5rem] sm:min-w-[6rem] text-center text-3xl sm:text-6xl md:text-7xl text-university-700">
             {hours}
           </div>
-          <span className="text-[10px] sm:text-xs font-sans text-slate-400 font-semibold uppercase mt-1">Hours</span>
+          <span className="text-[10px] sm:text-xs font-sans text-slate-500 font-semibold uppercase mt-1">ชั่วโมง</span>
         </div>
 
-        <span className="text-2xl sm:text-5xl md:text-6xl text-slate-600 font-bold -mt-5">:</span>
+        <span className="text-2xl sm:text-5xl md:text-6xl text-slate-400 font-bold -mt-5">:</span>
 
         <div className="flex flex-col items-center">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-2 sm:px-6 sm:py-4 shadow-xl min-w-[3.5rem] sm:min-w-[6rem] text-center text-3xl sm:text-6xl md:text-7xl text-indigo-400">
+          <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 sm:px-6 sm:py-4 shadow-sm min-w-[3.5rem] sm:min-w-[6rem] text-center text-3xl sm:text-6xl md:text-7xl text-university-700">
             {minutes}
           </div>
-          <span className="text-[10px] sm:text-xs font-sans text-slate-400 font-semibold uppercase mt-1">Minutes</span>
+          <span className="text-[10px] sm:text-xs font-sans text-slate-500 font-semibold uppercase mt-1">นาที</span>
         </div>
 
-        <span className="text-2xl sm:text-5xl md:text-6xl text-slate-600 font-bold -mt-5">:</span>
+        <span className="text-2xl sm:text-5xl md:text-6xl text-slate-400 font-bold -mt-5">:</span>
 
         <div className="flex flex-col items-center">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-2 sm:px-6 sm:py-4 shadow-xl min-w-[3.5rem] sm:min-w-[6rem] text-center text-3xl sm:text-6xl md:text-7xl text-indigo-400">
+          <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 sm:px-6 sm:py-4 shadow-sm min-w-[3.5rem] sm:min-w-[6rem] text-center text-3xl sm:text-6xl md:text-7xl text-university-700">
             {seconds}
           </div>
-          <span className="text-[10px] sm:text-xs font-sans text-slate-400 font-semibold uppercase mt-1">Seconds</span>
+          <span className="text-[10px] sm:text-xs font-sans text-slate-500 font-semibold uppercase mt-1">วินาที</span>
         </div>
       </div>
 
       {subtitle && (
-        <span className="text-xs sm:text-sm font-semibold tracking-wider text-slate-400 uppercase">
+        <span className="text-xs sm:text-sm font-semibold tracking-wider text-slate-600 uppercase">
           {subtitle}
         </span>
       )}
