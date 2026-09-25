@@ -1,0 +1,99 @@
+===============================================================================
+PHASE 16.2 — ROUTING & ADMIN AUTHENTICATION INVESTIGATION REPORT
+===============================================================================
+Date: 2026-09-23
+Project: University Event Management and Attendance Verification System
+Status: COMPLETE (Investigation & Analysis Only)
+
+-------------------------------------------------------------------------------
+1. ISSUE SUMMARY
+-------------------------------------------------------------------------------
+Navigating to `https://university-event-management-web-phi.vercel.app/admin/login`
+returns a Next.js 404 "Page Not Found" page.
+
+-------------------------------------------------------------------------------
+2. ROOT CAUSE DIAGNOSIS
+-------------------------------------------------------------------------------
+The route `/admin/login` returns 404 because NO page route file exists under
+`apps/web/src/app/admin/login/page.tsx` or `apps/web/src/app/admin/page.tsx`.
+
+Under Next.js App Router, routes map directly to filesystem directory structures:
+- `apps/web/src/app/page.tsx` -> `/`
+- `apps/web/src/app/events/page.tsx` -> `/events`
+- `apps/web/src/app/events/[id]/page.tsx` -> `/events/[id]`
+- `apps/web/src/app/events/[id]/display/page.tsx` -> `/events/[id]/display`
+- `apps/web/src/app/attendance/session/[token]/page.tsx` -> `/attendance/session/[token]`
+- `apps/web/src/app/admin/events/[id]/attendance/page.tsx` -> `/admin/events/[id]/attendance`
+
+Because there is no folder/file at `apps/web/src/app/admin/login/page.tsx`, Next.js
+naturally responds with a standard 404 error page.
+
+-------------------------------------------------------------------------------
+3. EXISTING ADMIN AUTHENTICATION ARCHITECTURE
+-------------------------------------------------------------------------------
+In the existing codebase, admin authentication was designed as an INLINE MODAL
+FLOW rather than a standalone `/admin/login` page:
+
+1. Target Route:
+   Administrators manage attendance per event via:
+   `apps/web/src/app/admin/events/[id]/attendance/page.tsx`
+   URL: `/admin/events/[id]/attendance`
+
+2. Inline Auth Check:
+   When the Admin Attendance page loads, `useEffect` checks local storage:
+   `const token = localStorage.getItem('admin_access_token');`
+   - If a valid token exists, it calls GET `/api/attendance/event/:id` with the
+     `Authorization: Bearer <token>` header.
+   - If token is missing, expired, or rejected (401/403), state `showAuthModal`
+     is set to `true`.
+
+3. Inline Auth Modal:
+   An overlay modal renders directly inside the page asking for Admin Credentials
+   (Username & Password).
+
+4. API Interaction:
+   - Form submits to `POST /api/auth/admin/login` with body `{ username, password }`.
+   - On success (200 OK), receives `{ accessToken, user }`.
+   - Saves token: `localStorage.setItem('admin_access_token', res.accessToken)`.
+   - Hides modal and fetches admin event attendance records.
+
+5. Navigation UI:
+   - Navbar (`apps/web/src/app/components/Navbar.tsx`): Has no dedicated `/admin/login` link.
+   - Event Detail (`apps/web/src/app/events/[id]/page.tsx`): Contains an "Admin Console"
+     action button pointing directly to `/admin/events/${id}/attendance`.
+
+-------------------------------------------------------------------------------
+4. SUMMARY OF EXISTING ADMIN ROUTES & FILES
+-------------------------------------------------------------------------------
+Existing Admin Page:
+- `apps/web/src/app/admin/events/[id]/attendance/page.tsx`
+
+Existing Admin API Service/Hooks:
+- `apps/web/src/lib/api.ts` (`adminLogin()`, `getEventAttendanceAdmin()`, `verifyAttendance()`)
+
+Non-existent Routes:
+- `/admin` (404)
+- `/admin/login` (404)
+
+-------------------------------------------------------------------------------
+5. RECOMMENDED NEXT STEPS FOR PHASE 16.3 (OR FUTURE PASS)
+-------------------------------------------------------------------------------
+If a dedicated `/admin/login` page is required for direct URL access:
+Option A (Dedicated Page): Create `apps/web/src/app/admin/login/page.tsx` that
+  presents the admin login form, authenticates against `POST /api/auth/admin/login`,
+  stores `admin_access_token` in `localStorage`, and redirects to `/events` or
+  the requested event admin dashboard.
+Option B (Redirect/Alias): Create a route `apps/web/src/app/admin/login/page.tsx`
+  that redirects users to `/events` or prompts event selection.
+Option C (Preserve Current Flow): Keep inline auth modal on `/admin/events/[id]/attendance`
+  and document `/admin/events/[id]/attendance` as the administrative portal route.
+
+-------------------------------------------------------------------------------
+6. NO CODE CHANGES MADE
+-------------------------------------------------------------------------------
+As requested:
+- No code modified.
+- No new routes created.
+- No backend code changed.
+- No deployment configuration altered.
+===============================================================================

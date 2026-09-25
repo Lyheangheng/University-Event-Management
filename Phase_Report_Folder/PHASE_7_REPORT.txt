@@ -1,0 +1,122 @@
+==============================================================================
+UNIVERSITY EVENT MANAGEMENT AND ATTENDANCE VERIFICATION SYSTEM
+PHASE 7 REPORT — DYNAMIC QR ATTENDANCE SESSION SYSTEM
+==============================================================================
+
+1. PHASE NAME:
+   Phase 7 — Dynamic QR Attendance Session System
+
+2. DATE/TIME COMPLETED:
+   2026-09-21
+
+3. GOAL:
+   Implement the backend attendance-session system and connect it to the Phase 6 projector display, generating and validating temporary session tokens for event check-in and check-out windows.
+
+4. BACKEND FILES CREATED / MODIFIED:
+   - [NEW] apps/api/src/attendance/attendance.service.ts
+   - [NEW] apps/api/src/attendance/attendance.controller.ts
+   - [NEW] apps/api/src/attendance/attendance.module.ts
+   - [MODIFY] apps/api/src/app.module.ts
+
+5. FRONTEND FILES CREATED / MODIFIED:
+   - [NEW] apps/web/src/lib/attendance-api.ts
+   - [NEW] apps/web/src/components/display/QrCodeDisplay.tsx
+   - [MODIFY] apps/web/src/app/events/[id]/display/page.tsx
+   - [NEW] apps/web/src/app/attendance/session/[token]/page.tsx
+   - [MODIFY] apps/web/package.json
+
+6. DATABASE CHANGES:
+   None. Reused existing AttendanceSession model from Phase 1 Prisma schema:
+   - id (UUID)
+   - eventId (String, relation to Event)
+   - sessionType (Enum: CHECK_IN | CHECK_OUT)
+   - token (String @unique)
+   - startTime (DateTime)
+   - endTime (DateTime)
+
+7. ATTENDANCESESSION IMPLEMENTATION:
+   - Business logic implemented in AttendanceService using PrismaService.
+   - Idempotence: Repeated requests during the same active window return the existing session record without re-generating tokens every second.
+
+8. TOKEN GENERATION METHOD:
+   - Cryptographically secure 256-bit random tokens generated using Node.js `crypto.randomBytes(32).toString('hex')` (64-character hex string).
+   - Unique, difficult to guess, never exposes incremental IDs, database secrets, or raw event IDs.
+
+9. SESSION TIMING RULES:
+   - CHECK_IN Session:
+     * Starts: event.startTime
+     * Ends: event.startTime + 10 minutes
+   - CHECK_OUT Session:
+     * Starts: event.endTime - 15 minutes
+     * Ends: event.endTime
+   - Authoritative Validity: Server time (`new Date()`) is strictly enforced (`startTime <= serverNow < endTime`). Client clock state is completely ignored.
+
+10. API ENDPOINTS:
+    - GET /api/attendance/events/:eventId/session
+      * Returns active session for an event if server time falls into check-in/check-out window. Returns `{ success: true, data: null }` if outside windows.
+    - GET /api/attendance/sessions/:token
+      * Retrieves and validates an attendance session by token. Throws 404 for invalid tokens and 400 for expired/inactive sessions.
+
+11. QR GENERATION IMPLEMENTATION:
+    - Installed `qrcode.react` library in Next.js frontend (`apps/web`).
+    - Created `QrCodeDisplay` component utilizing `QRCodeSVG` with high-contrast, scalable 240px SVG rendering.
+    - Encodes attendance session URL: `${FRONTEND_URL}/attendance/session/${token}`.
+
+12. PROJECTOR INTEGRATION:
+    - Updated `/events/[id]/display` page.
+    - Maintains 5-state projector display state machine (`BEFORE_EVENT`, `CHECK_IN_WINDOW`, `BETWEEN_CHECK_IN_AND_CHECKOUT`, `CHECK_OUT_WINDOW`, `ENDED`).
+    - Automatically displays real `QrCodeDisplay` during `CHECK_IN_WINDOW` and `CHECK_OUT_WINDOW` when active session is present, falling back to `QrPlaceholder` otherwise.
+
+13. STUDENT SESSION ROUTE:
+    - Created `/attendance/session/[token]/page.tsx`.
+    - Validates token against backend API upon load.
+    - Displays session status (`CHECK-IN SESSION` / `CHECK-OUT SESSION`), event details, session window bounds, and active verification notice.
+    - Displays clear error state for expired or invalid tokens.
+
+14. POLLING IMPLEMENTATION:
+    - Projector display polls `GET /api/attendance/events/:eventId/session` every 5 seconds during check-in/check-out windows.
+    - Countdown ticker updates every 1 second independently.
+    - Polling interval is cleanly initialized and destroyed on unmount to prevent duplicate timers and memory leaks.
+
+15. SECURITY MEASURES:
+    - Cryptographically secure 64-character hex tokens.
+    - Strict server-side time validation.
+    - No public POST session creation endpoints exposed.
+    - No database credentials or student secrets embedded in QR data.
+
+16. TESTS PERFORMED:
+    - Backend TypeScript compilation test (`nest build`): PASS (0 errors).
+    - Frontend Next.js build test (`next build`): PASS (0 errors).
+    - Session timing boundary verification.
+    - Idempotent token retrieval verification.
+
+17. BUILD/TEST RESULTS:
+    - Backend Build: SUCCESS
+    - Frontend Build: SUCCESS
+
+18. MANUAL CONFIGURATION REQUIRED:
+    None.
+
+19. DEPENDENCIES ADDED:
+    - `qrcode.react` (in `apps/web`)
+
+20. PROBLEMS ENCOUNTERED:
+    None.
+
+21. DEVIATIONS FROM PROMPT:
+    None.
+
+22. EXPLICIT CONFIRMATION:
+    Phase 8 WAS NOT IMPLEMENTED.
+    - Student attendance submission form: NOT IMPLEMENTED
+    - Photo upload: NOT IMPLEMENTED
+    - LINE OA / LIFF authentication: NOT IMPLEMENTED
+    - Attendance database record creation: NOT IMPLEMENTED
+    - Admin attendance dashboard: NOT IMPLEMENTED
+
+==============================================================================
+RECOMMENDED GIT COMMANDS:
+git add .
+git commit -m "feat: implement dynamic attendance QR sessions"
+git status
+==============================================================================

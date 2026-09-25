@@ -1,0 +1,90 @@
+================================================================================
+PHASE 16.10 REPORT — FIX LIFF ENTRY ROUTE / 404 AND VERIFY LIFF ATTENDANCE FLOW
+================================================================================
+
+1. Phase:
+   Phase 16.10 — Fix LIFF Entry Route / 404 and Verify LIFF Attendance Flow
+
+2. Objective:
+   Resolve the Next.js 404 error occurring upon accessing the configured LIFF 
+   Endpoint URL (https://university-event-management-web-phi.vercel.app/attendance/session/) 
+   while preserving the existing dynamic attendance session route 
+   (/attendance/session/[token]).
+
+3. Initial Problem:
+   When opening the LIFF URL (https://liff.line.me/2011689671-SKaMIQlb) inside LINE, 
+   LINE authorization succeeded, but the user was redirected to the Vercel application 
+   and received a "404 Page Not Found" error.
+
+4. Root Cause Found:
+   Next.js App Router matches URL paths against directory structures under `apps/web/src/app/`. 
+   The directory `apps/web/src/app/attendance/session/` contained only `[token]/page.tsx` 
+   and lacked a top-level `page.tsx`. Consequently, requests to `/attendance/session/` 
+   (the configured LIFF Endpoint URL) could not be matched by Next.js and returned 404.
+
+5. Files Inspected:
+   - `apps/web/src/app/attendance/session/[token]/page.tsx`
+   - `apps/web/src/lib/liff.ts`
+   - `apps/web/src/components/attendance/StudentAttendanceForm.tsx`
+   - `apps/web/src/lib/attendance-api.ts`
+
+6. Files Changed:
+   - `apps/web/src/app/attendance/session/page.tsx` (CREATED)
+
+7. Exact Implementation Changes:
+   - Created `apps/web/src/app/attendance/session/page.tsx` as a client-side component wrapped in `<Suspense>`:
+     1. Uses `useSearchParams` to check for deep-linked session tokens (`?token=...` or `?sessionToken=...`). If present, automatically replaces route to `/attendance/session/[token]`.
+     2. Calls `initLiff()` to cleanly initialize the LIFF SDK.
+     3. Extracts `idToken` upon successful LIFF login and calls `verifyLineToken()` to verify LINE identity against the NestJS backend, receiving and persisting the application JWT (`student_access_token`) in LocalStorage.
+     4. Renders a dedicated LIFF Student Portal UI showing LINE connection status, account linking controls (for unlinked student accounts), and clear guidance on scanning event attendance QR codes.
+     5. Enforces security by preventing direct attendance submission from the entry route (requiring an active session token URL).
+
+8. LIFF Flow After the Fix:
+   LINE User -> Opens LIFF URL (https://liff.line.me/2011689671-SKaMIQlb)
+     ↓
+   Redirects to LIFF Endpoint (/attendance/session/)
+     ↓
+   Page loads -> liff.init() -> LINE identity verified
+     ↓
+   Backend POST /api/line/verify-token -> Application JWT returned & saved
+     ↓
+   If ?token= parameter present -> Navigates to /attendance/session/[token]
+   If no ?token= parameter -> Displays portal guidance to scan event QR code
+
+9. Security Considerations:
+   - The entry route does NOT permit attendance submission without a valid session token.
+   - Attendance submission strictly requires `/attendance/session/[token]` and backend JWT verification.
+   - Backend identity resolution ignores client-side spoofing and relies on verified JWT `sub`.
+   - Development headers (`x-dev-student-id`) remain disabled in production (`NODE_ENV === 'production'`).
+
+10. Build/Test Commands:
+    - `npm run build --workspace=apps/api` (PASSED - Exit Code 0)
+    - `npm run build --workspace=apps/web` (PASSED - Exit Code 0)
+
+11. Test Results:
+    - API Build: PASSED
+    - Web Build: PASSED
+      Output verified Next.js routes:
+      * `○ /attendance/session` (Static entry route - 3.12 kB)
+      * `ƒ /attendance/session/[token]` (Dynamic session route - 7.65 kB)
+
+12. Production Deployment Instructions:
+    - Redeploy `apps/web` to Vercel (or trigger automatic build via `git push`).
+    - Note: Render API backend does not require redeployment as no backend code was modified.
+
+13. What Was NOT Verified:
+    - Live Vercel deployment of `/attendance/session/` (Pending manual Vercel redeployment by user).
+    - Live LINE app in-client testing (Pending redeployment and test via LINE mobile client).
+
+14. Remaining Limitations:
+    - LINE authentication requires opening within the LINE mobile app or LIFF browser environment.
+
+15. Git Commit Hash:
+    - c17fbe7fda777d2b4b5950d054367855be6cb6f6
+
+16. Git Commit Message:
+    - fix: add LIFF attendance entry route
+
+17. Final Status:
+    - PASSED / READY FOR VERCEL REDEPLOYMENT
+================================================================================

@@ -1,0 +1,97 @@
+==================================================
+PHASE 16.15 REPORT
+R2 PHOTO PROOF STREAMING IMPLEMENTATION
+==================================================
+
+1. OBJECTIVE
+Make attendance proof photos stored in Cloudflare R2 securely viewable by authenticated administrators via a backend proxy/streaming endpoint without exposing S3 credentials or making the Cloudflare R2 bucket publicly accessible.
+
+2. ROOT CAUSE BEING FIXED
+In Phase 16.14, production check-in proof photos were confirmed to upload successfully to Cloudflare R2. However, `attendance.checkInProofUrl` stored direct Cloudflare R2 S3 API URLs (`https://<account-id>.r2.cloudflarestorage.com/university-event-proofs/proofs/<filename>`). Browsers cannot directly load these URLs because the R2 S3 API requires authenticated S3 signature headers, resulting in broken image icons on the Admin Attendance Management page.
+
+3. FILES MODIFIED
+- `apps/api/src/storage/storage.interface.ts` (Added `FileStreamResult`, `getFileStream` method to `StorageProvider`, and `extractAndSanitizeFilename` security helper)
+- `apps/api/src/storage/local-storage.provider.ts` (Implemented `getFileStream` with path traversal guards for local filesystem)
+- `apps/api/src/storage/s3-storage.provider.ts` (Implemented `getFileStream` using AWS SDK `GetObjectCommand` for Cloudflare R2 / S3 storage)
+- `apps/api/src/storage/storage.service.ts` (Exposed `getFileStream` method)
+- `apps/api/src/attendance/attendance.module.ts` (Imported `AuthModule` for admin authentication guard support)
+- `apps/api/src/attendance/attendance.controller.ts` (Refactored `GET /api/attendance/uploads/proofs/:filename` to stream image via `StorageService` and protected with `@UseGuards(JwtAuthGuard, RolesGuard)` & `@Roles('ADMIN')`)
+- `apps/web/src/app/admin/events/[id]/attendance/page.tsx` (Added `AuthenticatedProofImage` component fetching proof photos via authenticated `fetch` with `Authorization: Bearer <token>`, Blob conversion, object URL creation, and lifecycle revocation cleanup)
+- `apps/api/src/attendance/attendance-regression.spec.ts` (Added unit/integration tests for local streaming, S3 `GetObjectCommand` streaming, R2 URL parsing, missing object errors, path traversal rejection, and auth guards)
+
+4. STORAGE ABSTRACTION CHANGES
+- `getFileStream(filenameOrUrl: string, subfolder?: string): Promise<FileStreamResult>` added to `StorageProvider` interface and `StorageService`.
+- Returns `{ stream: Readable, mimetype: string, contentLength?: number }`.
+
+5. LOCAL STORAGE CHANGES
+- `LocalStorageProvider.getFileStream` uses `extractAndSanitizeFilename` and `getFilePath` to verify local file existence and directory containment.
+- Returns `fs.createReadStream(filePath)` and validated MIME type.
+- Rejects directory traversal attempts (`../../etc/passwd`, `%2e%2e%2f`).
+
+6. S3/R2 STORAGE CHANGES
+- `S3StorageProvider.getFileStream` calls AWS SDK `GetObjectCommand`.
+- Sanitizes incoming key/URL using `extractAndSanitizeFilename` to handle both filename (`1727181234-abcd.jpg`) and full production R2 URLs (`https://<account-id>.r2.cloudflarestorage.com/university-event-proofs/proofs/1727181234-abcd.jpg`).
+- Returns object stream, `ContentType` (or safe extension fallback), and `ContentLength`.
+- Handles missing objects cleanly, throwing `NotFoundException` (HTTP 404).
+
+7. ATTENDANCE API CHANGES
+- Endpoint `GET /api/attendance/uploads/proofs/:filename` refactored from static local `res.sendFile()` to backend streaming via `storageService.getFileStream()`.
+- Supports both `STORAGE_PROVIDER=local` and `STORAGE_PROVIDER=s3`.
+- Sets security & content headers:
+  - `Content-Type: image/jpeg` (or png/webp)
+  - `Cache-Control: private, no-cache, no-store, must-revalidate`
+  - `Pragma: no-cache`
+  - `Expires: 0`
+  - `X-Content-Type-Options: nosniff`
+
+8. AUTHENTICATION/AUTHORIZATION
+- Proof retrieval endpoint `@Get('uploads/proofs/:filename')` is protected with `@UseGuards(JwtAuthGuard, RolesGuard)` and `@Roles('ADMIN')`.
+- Unauthenticated or non-admin requests are rejected with 401 Unauthorized / 403 Forbidden.
+- Obscurity of filename/key is NOT relied upon as authorization.
+
+9. ADMIN FRONTEND CHANGES
+- Created `AuthenticatedProofImage` component in `apps/web/src/app/admin/events/[id]/attendance/page.tsx`.
+- Extracts filename from record proof URL and calls backend proof endpoint with `Authorization: Bearer ${adminAccessToken}`.
+- Converts response stream to `Blob`, creates `URL.createObjectURL(blob)`, and automatically calls `URL.revokeObjectURL(url)` on unmount/cleanup to prevent browser memory leaks.
+- Displays pulse loading skeleton during fetch and fallback error state if unauthorized or missing.
+
+10. SECURITY MEASURES
+- R2 bucket remains strictly PRIVATE (no public bucket access enabled).
+- S3 credentials (`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT`) remain strictly server-side.
+- No presigned or public URLs generated.
+- Strict key validation (`extractAndSanitizeFilename`) prevents path traversal (`..`, `\`, `%`, `\0`).
+- Strict admin JWT authorization required for image retrieval.
+
+11. TESTS ADDED/UPDATED
+- Added Test 8: `LocalStorageProvider` stream retrieval and path traversal rejection (`../../etc/passwd`).
+- Added Test 9: `S3StorageProvider` `GetObjectCommand` invocation, full R2 URL key parsing, and missing object (404) handling.
+- Added Test 10: `extractAndSanitizeFilename` URL parsing and malicious key rejection.
+
+12. TEST RESULTS
+- VERIFIED LOCALLY: 10/10 regression tests passed successfully.
+- Output: `--- ALL REGRESSION TESTS PASSED SUCCESSFULLY ---`
+
+13. BACKEND BUILD RESULT
+- VERIFIED LOCALLY: `npm run build --workspace=apps/api` completed with 0 errors.
+
+14. FRONTEND BUILD RESULT
+- VERIFIED LOCALLY: `npm run build --workspace=apps/web` completed with 0 errors.
+
+15. MANUAL PRODUCTION TEST REQUIRED
+- [ ] Deploy updated API (Render) and Web (Vercel).
+- [ ] Admin logs into Admin Dashboard and opens Manage Attendance for an event.
+- [ ] Verify existing check-in proof image (stored with full R2 URL) loads successfully in inspection modal.
+- [ ] Perform a new student check-in with photo proof and verify new proof image loads.
+- [ ] Attempt unauthenticated GET `/api/attendance/uploads/proofs/:filename` in browser window and verify access is rejected (401/403).
+- [ ] Check-out proof images load using the same authenticated streaming endpoint.
+
+16. KNOWN LIMITATIONS
+- Direct browser access to `/api/attendance/uploads/proofs/:filename` without an `Authorization: Bearer <adminToken>` header will be rejected by design for security.
+
+17. DEPLOYMENT REQUIREMENTS
+- Set `STORAGE_PROVIDER=s3` on Render API service.
+- Maintain existing `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` environment variables on Render.
+
+18. GIT COMMIT
+- Commit Message: `fix: stream private R2 attendance proof images`
+==================================================

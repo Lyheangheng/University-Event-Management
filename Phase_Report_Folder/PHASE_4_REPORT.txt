@@ -1,0 +1,84 @@
+==============================================================================
+PHASE 4 REPORT: EVENT MANAGEMENT MODULE
+==============================================================================
+
+1. Phase Name:
+   Phase 4 — Event Management
+
+2. Completion Date/Time:
+   2026-09-19T20:47:35+07:00 (Asia/Bangkok)
+
+3. Event Architecture:
+   - Created a dedicated EventsModule under apps/api/src/events/.
+   - EventsService encapsulates Prisma database queries, event creation, retrieval,
+     updates, deletion, and date/time range validation logic.
+   - EventsController provides REST endpoints with ADMIN role guards for mutation
+     operations and public/authenticated read endpoints.
+
+4. Files/Modules Created:
+   - apps/api/src/events/dto/create-event.dto.ts
+   - apps/api/src/events/dto/update-event.dto.ts
+   - apps/api/src/events/events.service.ts
+   - apps/api/src/events/events.controller.ts
+   - apps/api/src/events/events.module.ts
+
+5. Event Fields Used (from Phase 1 Prisma Schema):
+   - id (UUID Primary Key)
+   - title (String)
+   - description (String @db.Text)
+   - date (DateTime)
+   - startTime (DateTime)
+   - endTime (DateTime)
+   - location (String)
+   - targetGroup (String, e.g. "1st Year Students")
+   - imageUrl (String?, optional image reference URL)
+   - createdById (String?, Foreign Key to Admin)
+   - createdAt, updatedAt (DateTime)
+
+6. API Endpoints:
+   - POST /api/events          (Create Event - Protected: ADMIN)
+   - GET /api/events           (List Events - Public/Authenticated Read)
+   - GET /api/events/:id       (Get Event Details - Public/Authenticated Read)
+   - PATCH /api/events/:id     (Update Event - Protected: ADMIN)
+   - DELETE /api/events/:id    (Delete Event - Protected: ADMIN)
+
+7. Authentication/Authorization Rules:
+   - Mutation endpoints (POST, PATCH, DELETE) require a valid JWT Bearer token and
+     ADMIN role via JwtAuthGuard, RolesGuard, and @Roles('ADMIN').
+   - Current admin ID is injected via @CurrentUser('userId') and stored in createdById.
+   - Read endpoints (GET /api/events, GET /api/events/:id) return event data without
+     exposing administrator credentials or password hashes.
+
+8. Validation Rules:
+   - Global ValidationPipe enforces field types, date-time ISO 8601 strings, and URL formats.
+   - Business validation in EventsService verifies startTime < endTime during creation
+     and partial updates. Throws 400 Bad Request if startTime >= endTime.
+   - Nonexistent event ID lookup returns 404 Not Found.
+
+9. Database Changes:
+   - None required. Reused Phase 1 Event model.
+
+10. Migration Name:
+    - None required.
+
+11. Image Handling Approach:
+    - File upload storage providers (S3/Cloudinary) were not implemented in this phase.
+    - Accepts and validates imageUrl metadata string references.
+
+12. Test Results:
+    - TypeScript compilation (nest build): PASSED (0 errors).
+    - Route mapping and endpoint creation: VERIFIED.
+    - Global validation and error filter integration: VERIFIED.
+
+13. Manual Configuration Required:
+    - None.
+
+14. Dependencies Added:
+    - @nestjs/mapped-types (^2.0.5)
+
+15. Problems Encountered:
+    - None.
+
+16. Deviations from Requirements:
+    - None.
+==============================================================================

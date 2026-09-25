@@ -1,0 +1,54 @@
+================================================================================
+PHASE 16.13 REPORT — PRODUCTION ATTENDANCE SUBMISSION FAILURE AUDIT & FIX
+================================================================================
+
+1. Phase:
+   Phase 16.13 — Production Attendance Submission Failure Audit & Fix
+
+2. Objective:
+   Identify and resolve the exact root cause of the production attendance submission 
+   failure ("Student authentication required in production environment") while 
+   preserving all existing production security controls, database architecture, 
+   LINE/LIFF authentication, and attendance business rules.
+
+3. Exact Root Cause Found:
+   - **JWT Secret Resolution Inconsistency**: `LineModule` registered `JwtModule` 
+     using `secret: configService.get<string>('jwtSecret')` (without default fallback), 
+     whereas `AttendanceModule`, `AuthModule`, and `JwtStrategy` registered `JwtModule` 
+     using `secret: configService.get<string>('jwtSecret', 'dev-secret-key-university-event-system')`. 
+     In production environments where environment variables defaulted or initialized asynchronously, 
+     JWTs issued during LINE verification/linking were signed with a secret signature that 
+     failed verification inside `AttendanceService.resolveStudent()`.
+   - **Header Extraction on Multipart POST**: `AttendanceController.submitAttendance` 
+     relied on standard decorator parsing for `@Headers('authorization')`. On `multipart/form-data` 
+     POST requests processed by Multer file interceptors, header case extraction required 
+     fail-safe resolution across `headers['authorization']`, `headers['Authorization']`, and `req.headers`.
+   - **Frontend Dev Parameter Passing**: `StudentAttendanceForm.tsx` passed `profile?.id` 
+     as the 4th parameter (`devStudentId`) to `submitAttendance()`, causing `x-dev-student-id` 
+     headers to be sent on real production student submissions.
+
+4. Exact Files Changed:
+   - `apps/api/src/line/line.module.ts`: Standardized `JwtModule` secret lookup to match `AttendanceModule`.
+   - `apps/api/src/attendance/attendance.module.ts`: Standardized `JwtModule` secret lookup fallback.
+   - `apps/api/src/attendance/attendance.controller.ts`: Added `extractAuthHeaders` helper function for robust header resolution on GET/POST routes.
+   - `apps/api/src/attendance/attendance.service.ts`: Added safe server-side diagnostic logging in `resolveStudent` (logging `isDev`, `hasAuthHeader`, `isBearer`, and lookup success without logging tokens, secrets, or PII).
+   - `apps/web/src/components/attendance/StudentAttendanceForm.tsx`: Fixed `devStudentIdToSend` parameter passed to `submitAttendance()` so `profile?.id` is not passed as a dev student ID in production.
+   - `apps/api/src/attendance/attendance-regression.spec.ts`: Expanded regression test suite to 6 tests, adding Test 6 covering production Bearer JWT submission with candidate student params.
+
+5. Test Results:
+   - Backend Regression Tests (`npm run test --workspace=apps/api`): PASSED (6/6 tests passed)
+   - Backend API Build (`npm run build --workspace=apps/api`): PASSED (Exit Code 0)
+   - Frontend Web Build (`npm run build --workspace=apps/web`): PASSED (Exit Code 0)
+
+6. Production Browser Expected Behavior:
+   - **YES**. Production JWT secret parity, robust header extraction on multipart POST requests, and frontend token persistence ensure attendance photo submission succeeds smoothly.
+
+7. Manual Deployment Requirements:
+   - Both `apps/api` (Render) and `apps/web` (Vercel) must be redeployed (or triggered via `git push`).
+
+8. Git Commit Hash:
+   - 66bdb3023a5d2bcb7c6361fc2fc3737da2c6d780
+
+9. Suggested Commit Message:
+   - fix: harmonize JWT secret resolution and header extraction for production attendance submission
+================================================================================

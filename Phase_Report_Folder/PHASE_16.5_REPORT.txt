@@ -1,0 +1,103 @@
+===============================================================================
+PHASE 16.5 — STUDENT ATTENDANCE NAVIGATION BUG FIX REPORT
+===============================================================================
+Date: 2026-09-24
+Project: University Event Management and Attendance Verification System
+Status: COMPLETE & VERIFIED
+
+-------------------------------------------------------------------------------
+1. PROBLEM FOUND
+-------------------------------------------------------------------------------
+On student/public event cards (`apps/web/src/components/EventCard.tsx`), clicking
+the student-facing "Attendance" button incorrectly navigated to the admin attendance
+management interface:
+
+  `/admin/events/[id]/attendance`
+
+This was problematic because students were directed to an administrator portal
+requiring admin login rather than the student attendance submission workflow.
+
+-------------------------------------------------------------------------------
+2. ROOT CAUSE
+-------------------------------------------------------------------------------
+The `EventCard` component contained a hardcoded Next.js `<Link>` pointing directly
+to `/admin/events/${event.id}/attendance` for its "Attendance" action button.
+
+-------------------------------------------------------------------------------
+3. FILES CHANGED
+-------------------------------------------------------------------------------
+[MODIFY] apps/web/src/components/EventCard.tsx
+  - Removed `<Link href="/admin/events/[id]/attendance">`.
+  - Converted the Attendance button to an interactive button that checks for an active session.
+  - Added `handleAttendanceClick` which calls `fetchActiveSession(event.id)`.
+  - Preserved the existing `Details` button (`/events/[id]`).
+
+-------------------------------------------------------------------------------
+4. EXACT NAVIGATION BEHAVIOR BEFORE / AFTER
+-------------------------------------------------------------------------------
+BEFORE:
+  Student clicks "Attendance" on EventCard -> Navigates to `/admin/events/[id]/attendance` (Admin Auth / Modal)
+
+AFTER:
+  Student clicks "Attendance" on EventCard:
+  1. Frontend calls `fetchActiveSession(event.id)` (`GET /api/attendance/events/:id/session`).
+  2. If an active session exists -> Navigates to `/attendance/session/[sessionToken]` (Student submission page).
+  3. If no session is active -> Displays clear inline notice: "⚠️ Attendance is not currently open for this event." (User stays on public area).
+
+-------------------------------------------------------------------------------
+5. HOW ACTIVE ATTENDANCE SESSION IS DETERMINED
+-------------------------------------------------------------------------------
+The `EventCard` invokes `fetchActiveSession(event.id)` from `apps/web/src/lib/attendance-api.ts`.
+This API executes `GET /api/attendance/events/${eventId}/session`.
+If an active `AttendanceSession` record exists for the event (state = `CHECK_IN` or `CHECK_OUT`
+and current time is within `startsAt` and `endsAt`), the backend returns `{ success: true, data: { token: "..." } }`.
+The frontend reads `session.token` and routes the student to `/attendance/session/${session.token}`.
+
+-------------------------------------------------------------------------------
+6. WHAT HAPPENS WHEN ATTENDANCE IS CLOSED
+-------------------------------------------------------------------------------
+If `fetchActiveSession` returns `null` or throws an error (indicating no active check-in/out session):
+- The student is NOT redirected to any admin page.
+- An inline alert appears directly on the event card: "⚠️ Attendance is not currently open for this event."
+- The student remains safely on the public `/events` portal.
+
+-------------------------------------------------------------------------------
+7. TESTS PERFORMED & RESULTS
+-------------------------------------------------------------------------------
+1. Admin Route Audit:
+   Scanned `apps/web/src` for remaining student-facing `/admin/events/` references.
+   Result: 0 student-facing admin links remain. All `/admin/events/` references are strictly inside `/admin` routes.
+2. Build Verification:
+   Ran `npm run build --workspace=apps/web`.
+   Result: SUCCESS (Exit Code 0).
+
+-------------------------------------------------------------------------------
+8. BUILD RESULT
+-------------------------------------------------------------------------------
+Command: `npm run build --workspace=apps/web`
+Output:
+  Route (app)                              Size     First Load JS
+  ┌ ○ /                                    175 B          96.2 kB
+  ├ ○ /_not-found                          873 B          88.2 kB
+  ├ ○ /admin                               4.19 kB         100 kB
+  ├ ƒ /admin/events/[id]/attendance        5.84 kB         102 kB
+  ├ ƒ /admin/events/[id]/edit              3.86 kB        99.9 kB
+  ├ ○ /admin/events/new                    3.56 kB        99.6 kB
+  ├ ○ /admin/login                         3.36 kB        99.4 kB
+  ├ ƒ /attendance/session/[token]          7.21 kB         103 kB
+  ├ ○ /events                              5.64 kB         102 kB
+  ├ ƒ /events/[id]                         4.75 kB         101 kB
+  └ ƒ /events/[id]/display                 12 kB           108 kB
+  + First Load JS shared by all            87.3 kB
+
+-------------------------------------------------------------------------------
+9. REMAINING ISSUES
+-------------------------------------------------------------------------------
+None. All public event card navigation issues resolved cleanly.
+
+-------------------------------------------------------------------------------
+10. GIT COMMIT INFORMATION
+-------------------------------------------------------------------------------
+Commit Hash: 64e272bb525f78d290e25cdd1136365086737ec7
+Commit Message: fix: correct student attendance navigation
+===============================================================================

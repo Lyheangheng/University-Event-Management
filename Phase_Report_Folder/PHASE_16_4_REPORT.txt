@@ -1,0 +1,139 @@
+===============================================================================
+PHASE 16.4 — PUBLIC VS ADMIN EVENT MANAGEMENT SEPARATION REPORT
+===============================================================================
+Date: 2026-09-24
+Project: University Event Management and Attendance Verification System
+Status: COMPLETE & VERIFIED
+
+-------------------------------------------------------------------------------
+1. PHASE & OBJECTIVE
+-------------------------------------------------------------------------------
+Phase: Phase 16.4 — Public vs Admin Event Management Separation
+Objective:
+  Cleanly separate the public student event experience from administrator event management tools.
+  Remove admin-oriented navigation from the public event detail page, convert `/admin` into an
+  event management console with "Create Event" and "Edit Event" workflows, and preserve all
+  existing student attendance and projector display functionality.
+
+-------------------------------------------------------------------------------
+2. PROBLEM FOUND
+-------------------------------------------------------------------------------
+1. The public event detail page (`/events/[id]`) previously exposed administrator navigation buttons
+   ("Admin Attendance", "Projector Display"), confusing students who were looking for student attendance submission.
+2. The `/admin` dashboard previously lacked event creation (`/admin/events/new`) and editing (`/admin/events/[id]/edit`)
+   workflows.
+
+-------------------------------------------------------------------------------
+3. PUBLIC UI CHANGES
+-------------------------------------------------------------------------------
+File: `apps/web/src/app/events/[id]/page.tsx`
+- Removed all admin navigation links ("Admin Attendance", "Open Projector Display", "Edit Event").
+- Top bar now contains only "Back to Events Portal".
+- Retained full public event details: title, description, image, date, start/end time, location, target group.
+- Preserved and highlighted the "Student Attendance Instructions" notice informing students to scan the live
+  dynamic QR code on the venue's Projector Display during check-in/out windows.
+
+-------------------------------------------------------------------------------
+4. ADMIN UI CHANGES
+-------------------------------------------------------------------------------
+File: `apps/web/src/app/admin/page.tsx`
+- Transformed `/admin` into an event management console.
+- Added a prominent "+ Create Event" button linking to `/admin/events/new`.
+- Added per-event administrator action buttons:
+  - ✏️ Edit (`/admin/events/[id]/edit`)
+  - 📋 Manage Attendance (`/admin/events/[id]/attendance`)
+  - 📺 Projector Display (`/events/[id]/display`)
+  - 🗑️ Delete Event (with confirmation prompt calling `DELETE /api/events/:id`)
+- Maintained token authentication check and "Sign Out" functionality.
+
+-------------------------------------------------------------------------------
+5. CREATE EVENT IMPLEMENTATION
+-------------------------------------------------------------------------------
+File: `apps/web/src/app/admin/events/new/page.tsx` [NEW]
+- Built event creation form supporting: title, description, event date (`YYYY-MM-DD`), start time (`HH:mm`),
+  end time (`HH:mm`), location, target group, and optional image URL.
+- Validates required fields, date ISO conversions, and ensures end time is after start time.
+- Submits to existing `POST /api/events` endpoint with `Authorization: Bearer <token>`.
+- Redirects to `/admin` upon successful creation.
+
+-------------------------------------------------------------------------------
+6. EDIT EVENT IMPLEMENTATION
+-------------------------------------------------------------------------------
+File: `apps/web/src/app/admin/events/[id]/edit/page.tsx` [NEW]
+- Pre-fills form fields by fetching existing event data via `fetchEventById(id)`.
+- Allows updating title, description, date, start/end time, location, target group, and image URL.
+- Submits updates to existing `PATCH /api/events/:id` endpoint with `Authorization: Bearer <token>`.
+- Redirects to `/admin` upon successful update.
+
+-------------------------------------------------------------------------------
+7. API ENDPOINTS REUSED & BACKEND CODE
+-------------------------------------------------------------------------------
+- Helper file updated: `apps/web/src/lib/api.ts` (`createEvent`, `updateEvent`, `deleteEvent`).
+- Reused existing NestJS endpoints without backend code modifications:
+  - `POST /api/events` (Create Event)
+  - `GET /api/events` (List Events)
+  - `GET /api/events/:id` (Get Single Event)
+  - `PATCH /api/events/:id` (Update Event)
+  - `DELETE /api/events/:id` (Delete Event)
+- Backend code changed: NONE.
+
+-------------------------------------------------------------------------------
+8. ROUTES VERIFIED
+-------------------------------------------------------------------------------
+Public Routes:
+- `/events`                             (Public events list)
+- `/events/[id]`                        (Public event detail view - NO admin buttons)
+- `/attendance/session/[sessionToken]`  (Student QR attendance scanner - UNTOUCHED)
+
+Admin Routes:
+- `/admin/login`                        (Admin login page)
+- `/admin`                              (Admin event management console)
+- `/admin/events/new`                   (Create event page)
+- `/admin/events/[id]/edit`             (Edit event page)
+- `/admin/events/[id]/attendance`       (Admin attendance records management)
+- `/events/[id]/display`                (Venue projector display screen - accessible from /admin)
+
+-------------------------------------------------------------------------------
+9. PRESERVATION & INTEGRITY
+-------------------------------------------------------------------------------
+- Student attendance route (`/attendance/session/[sessionToken]`): 100% UNTOUCHED and fully functional.
+- Projector display route (`/events/[id]/display`): 100% UNTOUCHED and fully functional.
+- Storage/R2/S3, LINE/LIFF, QR session logic, and backend auth: 100% UNTOUCHED.
+
+-------------------------------------------------------------------------------
+10. BUILD RESULTS
+-------------------------------------------------------------------------------
+Command: `npm run build --workspace=apps/web`
+Result: SUCCESS (Exit Code 0)
+
+Build Output Routes:
+  Route (app)                              Size     First Load JS
+  ┌ ○ /                                    175 B          96.2 kB
+  ├ ○ /_not-found                          873 B          88.2 kB
+  ├ ○ /admin                               4.19 kB         100 kB
+  ├ ƒ /admin/events/[id]/attendance        5.84 kB         102 kB
+  ├ ƒ /admin/events/[id]/edit              3.86 kB        99.9 kB
+  ├ ○ /admin/events/new                    3.56 kB        99.6 kB
+  ├ ○ /admin/login                         3.36 kB        99.4 kB
+  ├ ƒ /attendance/session/[token]          7.21 kB         103 kB
+  ├ ○ /events                              4.63 kB         101 kB
+  ├ ƒ /events/[id]                         4.74 kB         101 kB
+  └ ƒ /events/[id]/display                 12 kB           108 kB
+  + First Load JS shared by all            87.3 kB
+
+-------------------------------------------------------------------------------
+11. MANUAL CONFIGURATION REQUIRED
+-------------------------------------------------------------------------------
+None.
+
+-------------------------------------------------------------------------------
+12. KNOWN LIMITATIONS
+-------------------------------------------------------------------------------
+None. All routes and CRUD features build and run cleanly.
+
+-------------------------------------------------------------------------------
+13. GIT COMMIT INFORMATION
+-------------------------------------------------------------------------------
+Commit Hash: f0ee3798b0a593c2e8d82c5220e0676c5f278b43
+Commit Message: refactor: separate public and admin event management
+===============================================================================

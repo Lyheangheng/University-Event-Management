@@ -1,0 +1,153 @@
+===============================================================================
+PHASE 16 REPORT — PRODUCTION DEPLOYMENT & LIVE CONFIGURATION
+===============================================================================
+Date: 2026-09-23
+Project: University Event Management & Attendance Verification System
+Phase: Phase 16 (Production Deployment & Live Configuration)
+
+1. PHASE STATUS
+---------------
+Status: COMPLETED (Production Deployment Configuration & Live Architecture Ready)
+Overview: The application has been fully configured for production deployment across frontend (Next.js), backend (NestJS), database (Prisma / PostgreSQL), object storage (`S3StorageProvider`), LINE Official Account Messaging API, LIFF app integration, and production environment security.
+
+2. DEPLOYMENT ARCHITECTURE
+--------------------------
+- Frontend Service: Next.js (App Router) on Vercel / AWS Amplify / Docker.
+- Backend Service: NestJS REST API on Render / Railway / AWS ECS.
+- Database Service: Managed PostgreSQL (Supabase / AWS RDS / Neon / Railway) with Prisma ORM.
+- Storage Provider: S3-Compatible Object Storage (`S3StorageProvider`) for production proof uploads, with `LocalStorageProvider` retained for development (`STORAGE_PROVIDER=local` vs `STORAGE_PROVIDER=s3`).
+
+3. PROVIDER / SERVICE CHOICES
+-----------------------------
+- Web Hosting: Vercel / Node.js Host
+- API Hosting: Render / Railway / AWS
+- Database: Managed PostgreSQL
+- Storage Provider: AWS S3 / Cloudflare R2 / MinIO
+- Messaging & Identity: LINE Messaging API + LINE Login + LIFF SDK
+
+4. PUBLIC FRONTEND URL
+----------------------
+- URL Pattern: `https://<your-production-frontend-domain>`
+- Status: READY FOR HOSTING DEPLOYMENT (Configured via `FRONTEND_URL` on API and `NEXT_PUBLIC_API_URL` on Web).
+
+5. PUBLIC BACKEND URL
+---------------------
+- URL Pattern: `https://<your-production-backend-domain>`
+- Health Check: `https://<your-production-backend-domain>/api/health`
+- Status: READY FOR HOSTING DEPLOYMENT (Configured via `PORT` and `PORT=3001` fallback).
+
+6. DATABASE STATUS
+------------------
+- Schema Integrity: `npx prisma validate` executed with 0 errors.
+- Schema Models: Student, Admin, Event, AttendanceSession, Attendance.
+- Deployment Procedure: `npx prisma migrate deploy` for non-destructive production migrations.
+
+7. STORAGE STATUS
+-----------------
+- Provider Implementation: `S3StorageProvider` created in `apps/api/src/storage/s3-storage.provider.ts`.
+- Environment Variable: `STORAGE_PROVIDER=s3` selects S3 object storage; `STORAGE_PROVIDER=local` uses local disk.
+- Validation: 5MB maximum file size limit, JPEG/PNG/WebP format enforcement, UUID filename sanitization, and path traversal defenses remain active across both storage providers.
+
+8. LINE WEBHOOK STATUS
+----------------------
+- Webhook URL Pattern: `https://<your-production-backend-domain>/api/line/webhook`
+- Verification: Signature verification (HMAC-SHA256) remains strictly enabled via `LineController` and `LineService`. Invalid signatures return HTTP 401 Unauthorized.
+
+9. LIFF STATUS
+--------------
+- LIFF Endpoint URL Pattern: `https://<your-production-frontend-domain>/attendance/session/`
+- Configuration: Configured via `NEXT_PUBLIC_LIFF_ID` environment variable.
+
+10. AUTHENTICATION STATUS
+-------------------------
+- Production Admin Setup: `prisma/seed.ts` supports `ADMIN_INIT_USERNAME` and `ADMIN_INIT_PASSWORD` environment variables, avoiding hardcoded production credentials.
+- JWT Security: Signed using `JWT_SECRET` backend environment variable.
+- Identity Fallback: Development student header (`x-dev-student-id`) is disabled in production (`NODE_ENV=production`).
+
+11. PRODUCTION ENVIRONMENT STATUS
+---------------------------------
+- CORS Isolation: In production (`NODE_ENV=production`), CORS origin is strictly restricted to `FRONTEND_URL`.
+- Secret Masking: Secrets (`JWT_SECRET`, `LINE_CHANNEL_SECRET`, `DATABASE_URL`) are stored server-side only; frontend client bundle exposes only `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_LIFF_ID`.
+
+12. SMOKE-TEST MATRIX
+---------------------
+1. Backend Health API: PASS (HTTP 200 OK)
+2. Database Connection & Prisma: PASS (PostgreSQL Connected)
+3. Admin Authentication Login: PASS (JWT Issued)
+4. Admin Event Creation: PASS (Event created)
+5. Admin Event Editing: PASS (Title updated)
+6. Student Event Browsing: PASS (Event catalog operational)
+7. Projector Display Event Resolution: PASS (Projector state machine operational)
+8. Check-in QR Session Generation: PASS (CHECK_IN Token generated)
+9. Check-in Attendance Submission: PASS (Check-in recorded, status INCOMPLETE)
+10. Incomplete Attendance Lifecycle State: PASS (Status = INCOMPLETE)
+11. Checkout QR Session Generation: PASS (CHECK_OUT Token generated)
+12. Checkout Attendance Submission: PASS (Checkout recorded, status COMPLETED)
+13. Completed Attendance Lifecycle State: PASS (Status = COMPLETED)
+14. Duplicate Check-in Rejection: PASS (HTTP 400 Bad Request)
+15. Duplicate Checkout Rejection: PASS (HTTP 400 Bad Request)
+16. Checkout Without Check-in Rejection: PASS (HTTP 400 Bad Request)
+17. Expired / Invalid QR Token Rejection: PASS (HTTP 404 Not Found)
+18. Admin Attendance Aggregation & Summary: PASS (Summary statistics returned)
+19. Proof Image Upload & Retrieval: PASS (Content-Type: image/jpeg)
+20. Invalid File Type Rejection (MIME/Ext): PASS (Rejected text/plain)
+21. Oversized File Upload Rejection (>5MB): PASS (Rejected file > 5MB)
+22. Authorization Boundary (JWT Protection): PASS (HTTP 401 Unauthorized)
+23. Student Identity Scoping & Dev Header Fallback: PASS (Dev mode header operational; Prod disables fallback)
+24. LINE Token Verification Code Path: PASS (HTTP 401 Unauthorized for invalid token)
+25. LINE Webhook HMAC Signature Verification: PASS (HTTP 401 Unauthorized for invalid signature)
+26. LIFF Configuration Status: PASS (LIFF SDK init verified; Endpoint URL PENDING deployment)
+27. Responsive UI & Build Verification: PASS (Next.js 14 & NestJS builds compiled with 0 errors)
+
+13. SECURITY VERIFICATION
+-------------------------
+- Path Traversal: Verified rejection of `../../package.json` attempts.
+- File Size Limit: Verified 5MB upload limit.
+- Secret Exposure: Verified secret masking in API responses.
+- Stack Traces: Production exception filter hides internal stack traces.
+
+14. MANUAL CONFIGURATION REQUIRED
+---------------------------------
+1. Create hosting project on Vercel / Railway / Render / AWS.
+2. Provision managed PostgreSQL database and set `DATABASE_URL`.
+3. Provision S3-compatible cloud storage bucket and set `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
+4. Configure production environment variables (`JWT_SECRET`, `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, `ADMIN_INIT_USERNAME`, `ADMIN_INIT_PASSWORD`).
+5. In LINE Developers Console, set Webhook URL to `https://<backend-domain>/api/line/webhook` and enable Webhook.
+6. In LINE Developers Console, configure LIFF Endpoint URL to `https://<frontend-domain>/attendance/session/` and set `NEXT_PUBLIC_LIFF_ID`.
+
+15. BLOCKED ITEMS
+-----------------
+- Live public domain registration (requires manual hosting platform account setup by developer).
+- Real LINE Messaging API delivery (requires live production LINE Channel credentials).
+
+16. REMAINING LIMITATIONS
+-------------------------
+- S3 upload provider requires valid bucket credentials when `STORAGE_PROVIDER=s3` is activated.
+- LIFF authentication flow requires live LINE ID token verification on mobile LINE client.
+
+17. EXACT FILES CHANGED
+-----------------------
+Created Files:
+  - apps/api/src/storage/s3-storage.provider.ts
+  - PHASE_16_REPORT.txt
+
+Modified Files:
+  - apps/api/src/storage/storage.service.ts
+  - apps/api/src/storage/storage.module.ts
+  - apps/api/src/main.ts
+  - prisma/seed.ts
+  - .env.example
+  - README.md
+
+18. COMMANDS USED
+-----------------
+- `npm run build --workspace=apps/api`
+- `npm run build --workspace=apps/web`
+- `node test_storage_unit.js`
+- `node test_phase13.js`
+- `node test_phase15.js`
+
+19. WHETHER PRODUCTION DEPLOYMENT IS ACTUALLY COMPLETE
+-------------------------------------------------------
+- Production codebase configuration, storage provider abstractions, environment variable templates, CORS hardening, admin bootstrapping, and deployment documentation are COMPLETE and verified. Live domain deployment pending developer hosting platform credential setup.
+===============================================================================

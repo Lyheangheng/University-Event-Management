@@ -1,0 +1,133 @@
+================================================================================
+PHASE 9 — CHECK-OUT & ATTENDANCE COMPLETION REFINEMENT REPORT
+Date of Completion: 2026-09-21
+Environment: Windows (Node.js v24.14.1, NestJS API, Next.js Web, PostgreSQL + Prisma)
+================================================================================
+
+1. PHASE GOAL
+--------------------------------------------------------------------------------
+Refine and complete the end-to-end student attendance lifecycle:
+CHECK_IN -> INCOMPLETE -> CHECK_OUT -> COMPLETED
+
+Ensure authoritative server-side time validation, single Attendance record per student/event, 
+seamless UI state presentation across all 4 attendance states, and clean projector display 
+state machine transitions without introducing any breaking changes or schema alterations.
+
+2. EXISTING FUNCTIONALITY INSPECTED
+--------------------------------------------------------------------------------
+- Prisma Schema (`Attendance`, `AttendanceSession`, `Event`, `Student` models)
+- Backend Controller & Service (`apps/api/src/attendance/attendance.controller.ts`, `attendance.service.ts`)
+- Frontend API Client (`apps/web/src/lib/attendance-api.ts`)
+- Attendance Session Page & Form Component (`apps/web/src/app/attendance/session/[token]/page.tsx`, `StudentAttendanceForm.tsx`)
+- Projector Display Page & Display Logic (`apps/web/src/app/events/[id]/display/page.tsx`, `event-display.ts`)
+
+3. FILES CHANGED
+--------------------------------------------------------------------------------
+- apps/api/src/attendance/attendance.service.ts
+- apps/api/src/attendance/attendance.controller.ts
+- apps/web/src/lib/attendance-api.ts
+- apps/web/src/components/attendance/StudentAttendanceForm.tsx
+
+4. BACKEND CHANGES
+--------------------------------------------------------------------------------
+- Updated `getSessionByToken(token: string, studentIdOrParam?: string)` in `AttendanceService` 
+  to resolve the current student identity and attach `existingAttendance` record details 
+  (`id`, `checkInTime`, `checkInProofUrl`, `checkOutTime`, `checkOutProofUrl`, `feedback`, `status`).
+- Added `@Headers('x-dev-student-id')` parameter passing to `getSessionByToken` in `AttendanceController`.
+- Enforced strict backend error responses:
+  * Check-out without prior check-in -> 400 Bad Request ("Check-in record not found. You must check in before checking out.")
+  * Duplicate check-out submission -> 400 Bad Request ("Check-out has already been recorded for this event")
+  * Duplicate check-in submission -> 400 Bad Request ("Check-in has already been recorded for this event")
+  * Inactive or expired session token -> 400 Bad Request ("Attendance session has expired or is not yet active")
+  * Invalid token -> 404 Not Found ("Attendance session not found or invalid token")
+
+5. FRONTEND CHANGES
+--------------------------------------------------------------------------------
+- Updated `SessionValidationData` interface in `attendance-api.ts` to support optional `existingAttendance` payload.
+- Forwarded `x-dev-student-id` header in `fetchSessionByToken` for local development testing.
+- Refined `StudentAttendanceForm.tsx` to handle 4 distinct attendance lifecycle UI states:
+  1. Not Checked In (Check-in Session): Shows check-in form, photo proof upload, and feedback.
+  2. Checked In / Waiting for Checkout (Check-in Session when already checked in): Shows Check-in timestamp, 
+     status INCOMPLETE, and informational message explaining checkout opens during final 15 minutes of event.
+  3. Checkout Available (Check-out Session): Shows Check-In time badge, checkout photo proof upload, 
+     and submit check-out button (or warning card if student attempts checkout without prior check-in).
+  4. Attendance Completed: Shows Attendance Completed card with Check-In time, Check-Out time, 
+     status COMPLETED, and confirmation details.
+
+6. CHECKOUT STATE FLOW
+--------------------------------------------------------------------------------
+The complete attendance state lifecycle operates as follows:
+[Student Scans CHECK-IN QR] -> Check-In Form Submitted
+  └─> Server sets `checkInTime` = serverNow, `checkInProofUrl`, `status` = INCOMPLETE
+[Projector Transitions to CHECK_OUT_WINDOW] -> Student Scans CHECK-OUT QR
+  └─> Server verifies existing Check-In record exists
+  └─> Server updates `checkOutTime` = serverNow, `checkOutProofUrl`, `status` = COMPLETED
+  └─> Preserves original `checkInTime`, `checkInProofUrl`, and appends optional feedback.
+
+7. DATABASE CHANGES
+--------------------------------------------------------------------------------
+- NO database schema changes were made.
+- NO database migrations were executed.
+- `prisma migrate reset` was NOT executed.
+- Single record per `studentId + eventId` relationship maintained.
+
+8. SECURITY CONSIDERATIONS
+--------------------------------------------------------------------------------
+- Session tokens are cryptographically generated random strings (`crypto.randomBytes(32).toString('hex')`).
+- Tokens contain NO student identity or PII.
+- Server time (`serverNow`) is strictly authoritative for window comparisons and timestamps.
+- Photo proof uploads are validated for image mime-type and 5MB size limit.
+
+9. TESTS PERFORMED & RESULTS
+--------------------------------------------------------------------------------
+[PASS] Test A — Check-In Submission & INCOMPLETE Status
+       Submitted check-in with photo proof. Verified record created with `checkInTime` server timestamp, 
+       `checkInProofUrl`, and status = INCOMPLETE.
+
+[PASS] Test B — Before Checkout Window Rejection
+       Attempted check-out before checkout session active window. Rejected with HTTP 400 Bad Request.
+
+[PASS] Test C — Checkout Submission & COMPLETED Status
+       Submitted check-out with photo proof for checked-in student. Verified record updated with `checkOutTime`, 
+       `checkOutProofUrl`, status = COMPLETED, while preserving original `checkInTime`.
+
+[PASS] Test D — Duplicate Checkout Rejection
+       Attempted duplicate check-out submission. Rejected with HTTP 400 Bad Request 
+       ("Check-out has already been recorded for this event").
+
+[PASS] Test E — Checkout Without Check-In Rejection
+       Attempted check-out for a student who never checked in. Rejected with HTTP 400 Bad Request 
+       ("Check-in record not found. You must check in before checking out.").
+
+[PASS] Test F — Expired Checkout Session Rejection
+       Attempted submission using expired token. Rejected with HTTP 400 Bad Request 
+       ("Attendance session has expired or is not yet active").
+
+[PASS] Test G — Projector Display State Transitions
+       Verified projector state transitions: BEFORE_EVENT -> CHECK_IN_WINDOW -> BETWEEN_CHECK_IN_AND_CHECKOUT -> 
+       CHECK_OUT_WINDOW -> ENDED, with appropriate QR displays and countdown timers.
+
+[PASS] Test H — Regression Checks
+       Verified /api/health (200 OK), /api/events (200 OK), student event browsing (/events), 
+       admin login, and photo serving.
+
+10. MANUAL CONFIGURATION REQUIRED
+--------------------------------------------------------------------------------
+None. All tests run against the local development environment (`http://localhost:3001` API and `http://localhost:3002` Web).
+
+11. PROBLEMS ENCOUNTERED
+--------------------------------------------------------------------------------
+None.
+
+12. DEVIATIONS FROM REQUESTED PHASE
+--------------------------------------------------------------------------------
+None.
+
+13. CONFIRMATION OF STOP CONDITION
+--------------------------------------------------------------------------------
+Phase 10 (Admin Attendance Dashboard / Analytics / LINE OA / Cloud Storage / Redesign) was NOT implemented. 
+Work stopped immediately upon completion of Phase 9.
+
+================================================================================
+END OF REPORT
+================================================================================
