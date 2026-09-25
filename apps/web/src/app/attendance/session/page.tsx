@@ -3,7 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { initLiff, LiffState } from '../../../lib/liff';
+import { initLiff, LiffState, getLiffFriendship, requestLiffFriendship } from '../../../lib/liff';
 import { verifyLineToken, linkStudentAccount } from '../../../lib/attendance-api';
 
 function LiffSessionContent() {
@@ -18,6 +18,46 @@ function LiffSessionContent() {
   const [linkingLine, setLinkingLine] = useState<boolean>(false);
   const [linkInputStudentId, setLinkInputStudentId] = useState<string>('');
   const [lineNotice, setLineNotice] = useState<string | null>(null);
+
+  // LINE Official Account Friendship state
+  const [isLineFriend, setIsLineFriend] = useState<boolean | null>(null);
+  const [checkingFriendship, setCheckingFriendship] = useState<boolean>(false);
+  const [requestingFriendship, setRequestingFriendship] = useState<boolean>(false);
+
+  const checkFriendship = async () => {
+    setCheckingFriendship(true);
+    try {
+      const res = await getLiffFriendship();
+      if (res !== null) {
+        setIsLineFriend(res.friendFlag);
+      } else {
+        setIsLineFriend(true);
+      }
+    } catch (err) {
+      setIsLineFriend(true);
+    } finally {
+      setCheckingFriendship(false);
+    }
+  };
+
+  const handleAddFriend = async () => {
+    setRequestingFriendship(true);
+    try {
+      await requestLiffFriendship();
+      const updated = await getLiffFriendship();
+      if (updated && updated.friendFlag) {
+        setIsLineFriend(true);
+        setLineNotice('Thank you! You are now friends with University Events.');
+      } else {
+        setIsLineFriend(false);
+        setLineNotice('Please add or unblock University Events on LINE to receive event notifications.');
+      }
+    } catch (err) {
+      setLineNotice("We couldn't verify your LINE connection. Please try again.");
+    } finally {
+      setRequestingFriendship(false);
+    }
+  };
 
   useEffect(() => {
     // Check if session token is provided via query parameter (e.g. ?token=xxx or ?sessionToken=xxx)
@@ -43,6 +83,7 @@ function LiffSessionContent() {
           if (verified.displayName) {
             setLineDisplayName(verified.displayName);
           }
+          await checkFriendship();
         }
       } catch (err: any) {
         console.warn('LIFF Entry Point initialization warning:', err);
@@ -122,6 +163,38 @@ function LiffSessionContent() {
                 {lineLinked ? 'Linked & Verified' : 'Unlinked'}
               </span>
             </div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span className="text-slate-400">Official Account Friend:</span>
+              <span className={isLineFriend ? 'text-emerald-400 font-bold' : 'text-indigo-400 font-bold'}>
+                {isLineFriend === null ? 'Checking...' : isLineFriend ? 'Added' : 'Not Added'}
+              </span>
+            </div>
+
+            {isLineFriend === false && (
+              <div className="pt-2 space-y-2 border-t border-slate-800/80">
+                <p className="text-indigo-300 text-xs leading-relaxed">
+                  Add University Events on LINE to receive event announcements, check-in notifications, and check-out notifications.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddFriend}
+                    disabled={requestingFriendship}
+                    className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {requestingFriendship ? 'Connecting...' : '➕ Add Official Account'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={checkFriendship}
+                    disabled={checkingFriendship}
+                    className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all disabled:opacity-50"
+                  >
+                    {checkingFriendship ? '...' : '🔄 Re-check'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {!lineLinked && (
               <div className="pt-2 space-y-2">

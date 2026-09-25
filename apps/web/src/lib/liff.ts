@@ -93,3 +93,51 @@ export function getActiveLiffIdToken(): string | null {
   }
   return null;
 }
+
+/**
+ * Checks friendship status with the linked LINE Official Account via LIFF SDK.
+ * Returns { friendFlag: boolean } or null if error/unsupported.
+ */
+export async function getLiffFriendship(): Promise<{ friendFlag: boolean } | null> {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    if (!liffInstance) {
+      await initLiff();
+    }
+    if (liffInstance && liffInstance.isLoggedIn()) {
+      const friendship = await liffInstance.getFriendship();
+      return friendship;
+    }
+  } catch (err: any) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('liff.getFriendship() warning/error:', err);
+    }
+  }
+  return null;
+}
+
+/**
+ * Triggers subwindow prompting user to add/unblock the linked LINE Official Account via LIFF SDK.
+ * Always re-checks friendship status authoritatively after request completes.
+ */
+export async function requestLiffFriendship(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    if (!liffInstance) {
+      await initLiff();
+    }
+    if (liffInstance && liffInstance.isLoggedIn()) {
+      await liffInstance.requestFriendship();
+      const updated = await liffInstance.getFriendship();
+      return Boolean(updated?.friendFlag);
+    }
+  } catch (err: any) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('liff.requestFriendship() warning/error:', err);
+    }
+  }
+  return false;
+}
+

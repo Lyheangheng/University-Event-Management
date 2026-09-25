@@ -12,7 +12,7 @@ import {
   verifyLineToken,
   linkStudentAccount,
 } from '../../lib/attendance-api';
-import { initLiff, LiffState } from '../../lib/liff';
+import { initLiff, LiffState, getLiffFriendship, requestLiffFriendship } from '../../lib/liff';
 import { formatEventDate, formatTimeRange } from '../../lib/formatters';
 
 interface StudentAttendanceFormProps {
@@ -45,6 +45,56 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
   const [linkingLine, setLinkingLine] = useState<boolean>(false);
   const [lineNotice, setLineNotice] = useState<string | null>(null);
   const [linkInputStudentId, setLinkInputStudentId] = useState<string>('');
+
+  // LINE Official Account Friendship state
+  const [isLineFriend, setIsLineFriend] = useState<boolean | null>(null);
+  const [checkingFriendship, setCheckingFriendship] = useState<boolean>(false);
+  const [requestingFriendship, setRequestingFriendship] = useState<boolean>(false);
+  const [friendshipNotice, setFriendshipNotice] = useState<string | null>(null);
+
+  // Check LINE Official Account friendship status via LIFF SDK
+  const checkFriendshipStatus = useCallback(async () => {
+    setCheckingFriendship(true);
+    try {
+      const res = await getLiffFriendship();
+      if (res !== null) {
+        setIsLineFriend(res.friendFlag);
+      } else {
+        // Fallback: If friendship API is unsupported/unavailable (e.g. desktop dev mode), default to true to allow attendance
+        setIsLineFriend(true);
+      }
+    } catch (err: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Friendship status check warning:', err);
+      }
+      setIsLineFriend(true);
+    } finally {
+      setCheckingFriendship(false);
+    }
+  }, []);
+
+  const handleRequestFriendship = async () => {
+    setRequestingFriendship(true);
+    setFriendshipNotice(null);
+    try {
+      await requestLiffFriendship();
+      const updated = await getLiffFriendship();
+      if (updated && updated.friendFlag) {
+        setIsLineFriend(true);
+        setFriendshipNotice('Thank you! You are now friends with University Events.');
+      } else {
+        setIsLineFriend(false);
+        setFriendshipNotice('Please add or unblock University Events on LINE to receive event notifications.');
+      }
+    } catch (err: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('LINE Friendship Request Warning:', err);
+      }
+      setFriendshipNotice("We couldn't verify your LINE connection. Please try again.");
+    } finally {
+      setRequestingFriendship(false);
+    }
+  };
 
   // Form input states
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -133,13 +183,15 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
           } else {
             setProfile(null);
           }
+          // Perform friendship check authoritatively after LIFF verification
+          await checkFriendshipStatus();
         } catch (err) {
           console.warn('LINE Token Verification Warning:', err);
         }
       }
     }
     checkLiff();
-  }, []);
+  }, [checkFriendshipStatus]);
 
   const handleLinkLineAccount = async (targetStudentId?: string) => {
     const studentIdToLink = targetStudentId || linkInputStudentId || profile?.studentId;
@@ -524,6 +576,51 @@ export function StudentAttendanceForm({ sessionData: initialSessionData }: Stude
               {linkingLine ? 'Linking...' : 'Link Account'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* LINE Official Account Friendship Banner */}
+      {liffInfo?.idToken && isLineFriend === false && (
+        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 space-y-3">
+          <div className="flex items-start gap-2.5">
+            <span className="text-indigo-400 text-lg font-bold">💬</span>
+            <div className="space-y-1 text-xs">
+              <span className="font-bold text-indigo-300 block">Add &quot;University Events&quot; Official Account</span>
+              <p className="text-slate-300 leading-relaxed">
+                Add University Events on LINE to receive event announcements, check-in notifications, and check-out notifications.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleRequestFriendship}
+              disabled={requestingFriendship}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
+            >
+              {requestingFriendship ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Connecting to LINE...</span>
+                </>
+              ) : (
+                <span>➕ Add Official Account Friend</span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={checkFriendshipStatus}
+              disabled={checkingFriendship}
+              className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all disabled:opacity-50 shrink-0"
+            >
+              {checkingFriendship ? 'Checking...' : '🔄 Re-check Status'}
+            </button>
+          </div>
+
+          {friendshipNotice && (
+            <p className="text-xs text-indigo-300 font-medium pt-1">{friendshipNotice}</p>
+          )}
         </div>
       )}
 
